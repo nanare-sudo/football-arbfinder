@@ -237,3 +237,74 @@ def plot_league_clv(ranking: list[dict], *,
     ax.grid(axis="y", alpha=0.3)
     fig.tight_layout()
     return _save(fig, out_path)
+
+
+def plot_oos_league(league: str, in_stats: dict, out_stats: dict, *,
+                    status: str = "", uncertain: bool = False,
+                    out_path: str = "results/oos_league.png") -> str:
+    """In-Sample vs. Out-of-Sample je Liga: links mean CLV, rechts share_positive.
+
+    ``in_stats``/``out_stats`` haben ``mean_clv_pct``, ``share_positive_clv_pct``,
+    ``n_with_clv``. None-Werte (leeres Holdout) werden als 0 mit n-Annotation
+    gezeichnet — kein stiller Platzhalter.
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    def val(d: dict, key: str) -> float:
+        v = d.get(key)
+        return float(v) if v is not None else 0.0
+
+    labels = ["In-Sample", "Out-of-Sample"]
+    colors = ["#3b6ea5", "#2e8b57"]
+    ns = [in_stats.get("n_with_clv") or 0, out_stats.get("n_with_clv") or 0]
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4.6))
+    clv = [val(in_stats, "mean_clv_pct"), val(out_stats, "mean_clv_pct")]
+    b1 = ax1.bar(labels, clv, color=colors)
+    ax1.axhline(0.0, color="black", linewidth=1.0)
+    for bar, n in zip(b1, ns):
+        ax1.text(bar.get_x() + bar.get_width() / 2, bar.get_height(), f"n={n}",
+                 ha="center", va="bottom" if bar.get_height() >= 0 else "top", fontsize=9)
+    ax1.set_title("mean CLV (%) vs DEVIGTE Pinnacle-Schluss")
+    ax1.set_ylabel("mean CLV pro Wette (%)")
+    ax1.grid(axis="y", alpha=0.3)
+
+    share = [val(in_stats, "share_positive_clv_pct"), val(out_stats, "share_positive_clv_pct")]
+    ax2.bar(labels, share, color=colors)
+    ax2.axhline(50.0, color="grey", linestyle="--", alpha=0.7, label="50 %")
+    ax2.set_title("Anteil positiver CLV (%)")
+    ax2.set_ylabel("share positiv (%)")
+    ax2.set_ylim(0, 100)
+    ax2.legend()
+    ax2.grid(axis="y", alpha=0.3)
+
+    suffix = " — UNSICHER" if uncertain else ""
+    fig.suptitle(f"OOS-CLV {league}: Urteil = {status or 'n/a'}{suffix}", fontsize=12)
+    fig.tight_layout()
+    return _save(fig, out_path)
+
+
+def plot_oos_overview(rows: list[dict], *, out_path: str = "results/oos_overview.png") -> str:
+    """Uebersicht: mean CLV In-Sample vs. Out-of-Sample je Liga (gruppierte Balken)."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    labels = [f"{r['league']}{'*' if r.get('uncertain') else ''}" for r in rows]
+    in_v = [float(r["in_mean"]) if r.get("in_mean") is not None else 0.0 for r in rows]
+    out_v = [float(r["out_mean"]) if r.get("out_mean") is not None else 0.0 for r in rows]
+    x = range(len(labels))
+    fig, ax = plt.subplots(figsize=(max(7, len(labels) * 1.1), 4.6))
+    ax.bar([i - 0.2 for i in x], in_v, width=0.4, color="#3b6ea5", label="In-Sample")
+    ax.bar([i + 0.2 for i in x], out_v, width=0.4, color="#2e8b57", label="Out-of-Sample (2024/25)")
+    ax.axhline(0.0, color="black", linewidth=1.0)
+    ax.set_xticks(list(x))
+    ax.set_xticklabels(labels)
+    ax.set_title("CLV In-Sample vs. Out-of-Sample je Liga (* = unsicher)")
+    ax.set_ylabel("mean CLV pro Wette (%)")
+    ax.legend()
+    ax.grid(axis="y", alpha=0.3)
+    fig.tight_layout()
+    return _save(fig, out_path)

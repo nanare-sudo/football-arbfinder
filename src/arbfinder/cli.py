@@ -284,6 +284,44 @@ def _cmd_league_scan(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_oos_test(args: argparse.Namespace) -> int:
+    from arbfinder import oos
+
+    kw: dict[str, Any] = {}
+    if args.candidates:
+        kw["candidates"] = tuple(args.candidates)
+    if args.uncertain is not None:
+        kw["uncertain"] = tuple(args.uncertain)
+    try:
+        report, plotdata = oos.run(
+            args.csv_dir, bet_source=args.bet_source, min_edge=args.min_edge,
+            odds_min=args.odds_min, odds_max=args.odds_max,
+            min_oos=args.min_oos, min_samples=args.min_samples, **kw)
+    except (ValueError, OSError) as exc:
+        print(f"OOS-Test fehlgeschlagen: {exc}")
+        return 1
+
+    out = Path(args.out_json)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(report, indent=2))
+    print(f"JSON -> {args.out_json}")
+
+    summary = oos.summary_report(report)
+    sout = Path(args.summary_json)
+    sout.parent.mkdir(parents=True, exist_ok=True)
+    sout.write_text(json.dumps(summary, indent=2))
+    print(f"Urteile -> {args.summary_json}")
+
+    if args.plots:
+        try:
+            for pth in oos.make_plots(report, plotdata, args.plots):
+                print(f"Plot -> {pth}")
+        except Exception as exc:                       # noqa: BLE001 - z.B. matplotlib fehlt
+            print(f"Plots uebersprungen: {exc}")
+    print("\n" + oos.summary_text(report))
+    return 0
+
+
 # --------------------------------------------------------------------------- #
 # Parser
 # --------------------------------------------------------------------------- #
@@ -394,6 +432,27 @@ def build_parser() -> argparse.ArgumentParser:
     ls.add_argument("--min-bets", dest="min_bets", type=int, default=None,
                     help="Robust-Schwelle: Mindest-Stichprobe (Default 50)")
     ls.set_defaults(func=_cmd_league_scan)
+
+    oo = sub.add_parser("oos-test",
+                        help="Out-of-Sample-CLV-Holdout fuer die Kandidaten-Ligen (EC/I2/F2; SC3 unsicher)")
+    oo.add_argument("--csv-dir", dest="csv_dir", default="data/leagues",
+                    help="Ordner mit den Liga-CSVs (Train- + Holdout-Saisons)")
+    oo.add_argument("--out-json", dest="out_json", default="results/oos_clv.json")
+    oo.add_argument("--summary-json", dest="summary_json", default="results/oos_summary.json")
+    oo.add_argument("--plots", default=None, help="Ordner fuer die PNG-Plots (matplotlib)")
+    oo.add_argument("--bet-source", dest="bet_source", default="B365")
+    oo.add_argument("--min-edge", dest="min_edge", type=float, default=2.0)
+    oo.add_argument("--odds-min", dest="odds_min", type=float, default=2.0)
+    oo.add_argument("--odds-max", dest="odds_max", type=float, default=4.0)
+    oo.add_argument("--min-oos", dest="min_oos", type=float, default=0.5,
+                    help="OOS 'robust positiv': Mindest-mean-CLV %% (Default 0.5)")
+    oo.add_argument("--min-samples", dest="min_samples", type=int, default=30,
+                    help="OOS-Mindeststichprobe; darunter -> parked statt confirmed (Default 30)")
+    oo.add_argument("--candidates", nargs="*", default=None,
+                    help="Liga-Codes als Kandidaten (Default EC I2 F2)")
+    oo.add_argument("--uncertain", nargs="*", default=None,
+                    help="Liga-Codes, die als unsicher markiert werden (Default SC3)")
+    oo.set_defaults(func=_cmd_oos_test)
 
     return p
 
