@@ -13,6 +13,7 @@ agent = ["apscheduler>=3.10"]        # nur fuer den periodischen Agent noetig
 
 [project.scripts]
 arbfinder = "arbfinder.cli:main"
+arbfinder-agent = "arbfinder.agent:main"
 
 [build-system]
 requires = ["setuptools>=68"]

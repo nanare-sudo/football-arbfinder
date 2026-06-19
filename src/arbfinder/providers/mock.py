@@ -65,7 +65,11 @@ def _parse_odds(raw: Any) -> dict[str, dict[str, float]]:
             bookie = str(first_present(item, ("bookmaker", "book", "source"), default="unknown"))
             if outcome is None or price is None or price <= 0:
                 continue
-            out.setdefault(str(outcome), {})[bookie] = price
+            # Punkt-/Linien-Maerkte: Linie in den Ausgang falten, damit
+            # verschiedene Linien nicht still zu einem Markt kollabieren.
+            point = first_present(item, ("point", "line", "handicap"), default=None)
+            key = str(outcome) if point is None else f"{outcome} {point}"
+            out.setdefault(key, {})[bookie] = price
     return out
 
 

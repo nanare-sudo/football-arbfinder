@@ -32,6 +32,18 @@ from typing import Any
 OddsMap = dict[str, dict[str, float]]
 
 
+def count_priced_outcomes(odds: OddsMap) -> int:
+    """Zaehlt Ausgaenge mit MINDESTENS einer echten Quote.
+
+    Leere Bookie-Maps (Ausgang als Schluessel vorhanden, aber ohne Preis) zaehlen
+    NICHT. Genau dieselbe Semantik nutzen detector und backtest fuer die
+    Vollstaendigkeitspruefung, damit die Datenqualitaets-Metrik ueberall gleich
+    misst (siehe CLAUDE.md: skipped_incomplete darf nicht stillschweigend
+    schwaecher sein als der eigentliche Schutz).
+    """
+    return sum(1 for books in odds.values() if books)
+
+
 @dataclass
 class Market:
     """Ein einzelner Wettmarkt eines Events (z.B. h2h, totals, spreads).
@@ -57,7 +69,7 @@ class Market:
     @property
     def present_outcomes(self) -> int:
         """Anzahl Ausgaenge, fuer die mindestens eine echte Quote vorliegt."""
-        return sum(1 for books in self.odds.values() if books)
+        return count_priced_outcomes(self.odds)
 
     @property
     def is_complete(self) -> bool:

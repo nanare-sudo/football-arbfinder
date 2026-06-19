@@ -64,9 +64,12 @@ ALIASES: dict[str, str] = {
 }
 
 # Reine Club-Typ-Tokens, die fuer die Identitaet bedeutungslos sind. Bewusst
-# KLEIN gehalten (nur eindeutige Suffixe), um echte Namensbestandteile nicht zu
-# verschlucken (z.B. "AC"/"AS" sind hier NICHT drin -> "AC Milan" bleibt heil).
-_NOISE_TOKENS = {"fc", "afc", "cf", "sc", "ssc"}
+# SEHR klein gehalten: nur "fc"/"afc" sind eindeutig nicht-identifizierend.
+# "cf"/"sc"/"ssc" werden NICHT entfernt, weil sie sonst verschiedene Clubs
+# kollidieren liessen (z.B. "Barcelona SC" != "Barcelona", "Sporting CF" !=
+# "Sporting"). "AC"/"AS" sind ebenfalls draussen ("AC Milan" bleibt heil).
+# Grundsatz: lieber konservativ NICHT zusammenfuehren (siehe Modul-Docstring).
+_NOISE_TOKENS = {"fc", "afc"}
 
 
 def _clean(name: str) -> str:
@@ -103,9 +106,17 @@ def _fuzzy_match(name: str, candidates: Iterable[str], threshold: float) -> str 
         if match and match[1] >= threshold:
             return match[0]
         return None
-    best, best_score = None, 0.0          # difflib-Fallback
+
+    # difflib-Fallback: Tokens VOR dem Vergleich sortieren, damit der Score auf
+    # derselben Skala liegt wie rapidfuzz' token_sort_ratio (sonst waeren die
+    # Treffer/Schwellen-Entscheidungen je nach installiertem Paket verschieden).
+    def _sorted_tokens(s: str) -> str:
+        return " ".join(sorted(s.lower().split()))
+
+    best, best_score = None, 0.0
+    nm = _sorted_tokens(name)
     for c in cands:
-        score = SequenceMatcher(None, name.lower(), c.lower()).ratio() * 100.0
+        score = SequenceMatcher(None, nm, _sorted_tokens(c)).ratio() * 100.0
         if score > best_score:
             best, best_score = c, score
     return best if best_score >= threshold else None
@@ -154,16 +165,18 @@ def _team_key(event: Event, known: Iterable[str] | None) -> frozenset[str]:
 
 
 def _round_to_hour(dt: datetime) -> datetime:
-    """Rundet auf die NAECHSTE volle Stunde (UTC) — daempft Minuten-Drift."""
+    """Rundet auf die NAECHSTGELEGENE volle Stunde (UTC) — daempft Minuten-Drift."""
     d = _as_utc(dt) + timedelta(minutes=30)
     return d.replace(minute=0, second=0, microsecond=0)
 
 
 def event_identity(event: Event, known: Iterable[str] | None = None) -> tuple:
-    """Hashbarer Identitaetsschluessel: (Teams, auf Stunde gerundete Anstosszeit).
+    """Grobe, hashbare Vor-Buckets: (Teams, auf Stunde gerundete Anstosszeit).
 
-    Verschiedene Tage/Stunden -> verschiedene Identitaet. So werden zwei Spiele
-    derselben Teams an verschiedenen Tagen NICHT verwechselt.
+    Verschiedene Tage/Stunden -> verschiedene Identitaet. Gedacht als schneller
+    Vor-Bucket bzw. fuer Tests. Fuer echte Dedup-Entscheidungen ist
+    ``merge_events``/``same_event`` massgeblich (toleranzbasiert und an
+    Stundengrenzen konsistent) — nicht dieser gerundete Schluessel.
     """
     return (_team_key(event, known), _round_to_hour(event.start_time).isoformat())
 
@@ -269,9 +282,11 @@ def merge_events(
 ) -> list[Event]:
     """Fuehrt Duplikate ueber Anbieter/Maerkte hinweg zusammen.
 
-    Gruppiert nach kanonischem Team-Set und clustert innerhalb einer Gruppe nur
-    Events, deren Anstosszeit innerhalb der Toleranz liegt. Verschiedene Tage
-    bleiben getrennt. Rueckgabe stabil sortiert nach Anstosszeit, dann Name.
+    Gruppiert nach kanonischem Team-Set und clustert innerhalb einer Gruppe per
+    Single-Linkage: nach Anstosszeit sortieren, ein neues Event beginnen, sobald
+    die Luecke zum VORGAENGER die Toleranz uebersteigt. Das ist transitiv und
+    reihenfolge-unabhaengig (kein Anker-Artefakt). Verschiedene Tage bleiben
+    getrennt. Rueckgabe stabil sortiert nach Anstosszeit, dann Name.
     """
     groups: dict[frozenset[str], list[Event]] = {}
     for ev in events:
@@ -281,14 +296,14 @@ def merge_events(
     for evs in groups.values():
         evs_sorted = sorted(evs, key=lambda e: _as_utc(e.start_time))
         clusters: list[list[Event]] = []
+        prev: datetime | None = None
         for ev in evs_sorted:
-            for cl in clusters:
-                anchor = _as_utc(cl[0].start_time)
-                if abs((_as_utc(ev.start_time) - anchor).total_seconds()) / 60.0 <= time_tolerance_minutes:
-                    cl.append(ev)
-                    break
+            t = _as_utc(ev.start_time)
+            if prev is None or (t - prev).total_seconds() / 60.0 > time_tolerance_minutes:
+                clusters.append([ev])        # Luecke zum Vorgaenger zu gross -> neues Event
             else:
-                clusters.append([ev])
+                clusters[-1].append(ev)      # Single-Linkage: an laufenden Cluster anhaengen
+            prev = t
         merged.extend(_merge_cluster(cl, known) for cl in clusters)
 
     merged.sort(key=lambda e: (_as_utc(e.start_time), e.name))

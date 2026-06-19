@@ -23,7 +23,7 @@ from dataclasses import asdict, dataclass, field
 from typing import Any, Iterable
 import logging
 
-from arbfinder.models import Event
+from arbfinder.models import Event, count_priced_outcomes
 from arbfinder.normalize import merge_events
 from arbfinder.providers.base import OddsProvider
 from arbfinder.strategies import Signal, get
@@ -77,7 +77,7 @@ def detect(
         for snap in ev.to_snapshots():            # ein Snapshot je Markttyp
             checked += 1
             odds = snap.get("odds", {})
-            present = sum(1 for books in odds.values() if books)
+            present = count_priced_outcomes(odds)
             expected = int(snap.get("expected_outcomes", 0) or 0)
 
             # Vollstaendigkeit: fehlt ein erwarteter Ausgang -> Phantom-Arb-Gefahr.

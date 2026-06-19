@@ -117,8 +117,9 @@ Betting) schon. Die Deflationierung bei Mehrfachtests ist nur informativ.
 
 ## Echte Daten anbinden (spaeter, mit Lizenz)
 
-`providers/theoddsapi.py` ist ein **Stub** fuer eine kommerzielle Odds-API
-(Beispiel: The Odds API, v4) — **kein** Scraper.
+`providers/theoddsapi.py` ist ein minimaler Client fuer eine kommerzielle
+Odds-API (Beispiel: The Odds API, v4) — **kein** Scraper. Der Netzwerk-Pfad ist
+implementiert, braucht aber einen gueltigen Schluessel und eine gueltige Lizenz.
 
 ```bash
 export ODDS_API_KEY="dein_lizenzierter_schluessel"   # NICHT eincheck! (.env)

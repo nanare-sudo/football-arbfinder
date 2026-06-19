@@ -30,6 +30,7 @@ import json
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Any
+from arbfinder.models import count_priced_outcomes
 from arbfinder.strategies import get
 from arbfinder.validation import Verdict, judge
 
@@ -62,8 +63,12 @@ def _simulate_pnl(signal_stakes: dict[str, float], result: str, odds: dict) -> f
     total_in = sum(signal_stakes.values())
     if result not in signal_stakes:
         return -total_in  # auf den Ausgang gar nicht gesetzt -> Totalverlust der Einsaetze
-    best_odd = max(odds.get(result, {}).values())
-    payout = signal_stakes[result] * best_odd
+    vals = [v for v in odds.get(result, {}).values() if v and v > 0]
+    if not vals:
+        # Auf den Ausgang gesetzt, aber im Snapshot kein bepreister Buchmacher:
+        # nicht einloesbar -> als Verlust verbuchen (statt mit max() zu crashen).
+        return -total_in
+    payout = signal_stakes[result] * max(vals)
     return payout - total_in
 
 
@@ -82,8 +87,10 @@ def run(strategy_name: str, snapshots_path: str | Path, **kwargs) -> BacktestRes
     for ev in rows:
         sigs = strat.evaluate(ev)
         if not sigs:
-            # grobe Heuristik fuer "wegen Unvollstaendigkeit verworfen"
-            present = len(ev.get("odds", {}))
+            # Vollstaendigkeit GENAU wie der detector zaehlen: nur Ausgaenge mit
+            # echter Quote (leere Bookie-Map zaehlt nicht), damit skipped_incomplete
+            # nicht stillschweigend schwaecher misst als der eigentliche Schutz.
+            present = count_priced_outcomes(ev.get("odds", {}))
             if ev.get("expected_outcomes", 0) and present < ev["expected_outcomes"]:
                 skipped += 1
             continue

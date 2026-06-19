@@ -19,6 +19,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 import json
+import logging
 
 from arbfinder.models import Event
 
@@ -121,10 +122,19 @@ def split_teams(event_name: str) -> tuple[str, str]:
 
 
 def read_jsonl(path: str | Path) -> list[dict[str, Any]]:
-    """Liest eine .jsonl-Datei; ignoriert Leerzeilen und '//'-Kommentare."""
+    """Liest eine .jsonl-Datei; ignoriert Leerzeilen und '//'-Kommentare.
+
+    Defekte JSON-Zeilen werden geloggt und uebersprungen (defensiv parsen) statt
+    den ganzen Lauf abzubrechen — und NICHT durch erfundene Daten ersetzt.
+    """
+    logger = logging.getLogger("arbfinder.providers")
     rows: list[dict[str, Any]] = []
-    for line in Path(path).read_text(encoding="utf-8").splitlines():
+    for i, line in enumerate(Path(path).read_text(encoding="utf-8").splitlines()):
         line = line.strip()
-        if line and not line.startswith("//"):
+        if not line or line.startswith("//"):
+            continue
+        try:
             rows.append(json.loads(line))
+        except json.JSONDecodeError as exc:
+            logger.warning("Zeile %d uebersprungen (kein gueltiges JSON): %s", i, exc)
     return rows

@@ -1,8 +1,9 @@
 """
-Provider-STUB fuer eine kommerzielle Odds-API (Beispiel: The Odds API, v4).
+Minimaler Client fuer eine kommerzielle Odds-API (Beispiel: The Odds API, v4).
 
-Dies ist bewusst KEIN Scraper. Echte Daten kommen ausschliesslich ueber eine
-lizenzierte API mit gueltigem Schluessel (siehe Leitplanken in CLAUDE.md).
+Der Netzwerk-Pfad (``fetch_events``) ist implementiert, aber nur mit gueltigem
+Lizenz-Schluessel nutzbar. Dies ist bewusst KEIN Scraper. Echte Daten kommen
+ausschliesslich ueber eine lizenzierte API (siehe Leitplanken in CLAUDE.md).
 
 >>> WO KOMMT DER API-KEY REIN? <<<
     Setze die Umgebungsvariable ODDS_API_KEY (z.B. in einer .env-Datei, die NICHT
@@ -51,20 +52,31 @@ _BASE_URL = "https://api.the-odds-api.com/v4"
 _DRAW_SPORTS = ("soccer", "football_aussie", "rugby", "hockey", "cricket")
 
 
+def _fmt_point(point: object) -> str:
+    """Formatiert eine Linie/Handicap stabil fuer den Markttyp-Schluessel."""
+    try:
+        f = float(point)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return str(point)
+    return str(int(f)) if f.is_integer() else str(f)
+
+
 def _expected_outcomes(market_key: str, sport_key: str, observed: int) -> int:
     """Schaetzt die SOLL-Zahl der Ausgaenge fuer die Vollstaendigkeitspruefung.
 
     Bewusst konservativ: bei h2h entscheidet die Sportart (3-Wege bei
-    Remis-faehigen Sportarten, sonst 2). Fuer totals/spreads sind es 2.
-    Sonst Rueckfall auf die beobachtete Anzahl (kann Phantom-Arbs nicht
-    ausschliessen -> im Backtest/Detector sichtbar an skipped_incomplete).
+    Remis-faehigen Sportarten, sonst 2). totals/spreads sind PRO LINIE 2-Wege.
+    Bei unbekannten Markttypen geben wir 0 zurueck ("Erwartung unbekannt" gemaess
+    Market.is_complete) statt der beobachteten Anzahl — letztere waere eine
+    selbsterfuellende present==expected-Tautologie und wuerde den
+    Vollstaendigkeitsschutz aushebeln.
     """
     mk = market_key.lower()
     if mk == "h2h":
         return 3 if any(sport_key.lower().startswith(s) for s in _DRAW_SPORTS) else 2
     if mk in ("totals", "spreads"):
         return 2
-    return observed
+    return 0
 
 
 def parse_response(raw: list[dict[str, Any]]) -> list[Event]:
@@ -84,29 +96,36 @@ def parse_response(raw: list[dict[str, Any]]) -> list[Event]:
             continue
 
         sport_key = str(raw_ev.get("sport_key", ""))
-        # market_key -> {outcome -> {bookmaker -> price}}
+        # market_type -> {outcome -> {bookmaker -> price}}; base_of merkt sich den
+        # Basis-Markt (z.B. 'totals') je linien-spezifischem Typ ('totals_2.5').
         by_market: dict[str, dict[str, dict[str, float]]] = {}
+        base_of: dict[str, str] = {}
         for bm in raw_ev.get("bookmakers", []):
             book = str(bm.get("key") or bm.get("title") or "unknown")
             for m in bm.get("markets", []):
                 mkey = str(m.get("key", "")).strip()
                 if not mkey:
                     continue
-                bucket = by_market.setdefault(mkey, {})
                 for oc in m.get("outcomes", []):
                     name = oc.get("name")
                     price = coerce_float(oc.get("price"))
                     if name is None or price is None or price <= 0:
                         continue
-                    bucket.setdefault(str(name), {})[book] = price
+                    # Punkt-/Linien-Maerkte (totals/spreads) je Linie TRENNEN.
+                    # Sonst kollabieren inkompatible Linien (Over@2.5 + Under@3.5)
+                    # in EINEN Markt und erzeugen nicht setzbare Phantom-Arbs.
+                    point = oc.get("point")
+                    market_type = mkey if point is None else f"{mkey}_{_fmt_point(point)}"
+                    base_of[market_type] = mkey
+                    by_market.setdefault(market_type, {}).setdefault(str(name), {})[book] = price
 
         markets = [
             Market(
-                market_type=mkey,
+                market_type=mt,
                 odds=odds,
-                expected_outcomes=_expected_outcomes(mkey, sport_key, len(odds)),
+                expected_outcomes=_expected_outcomes(base_of[mt], sport_key, len(odds)),
             )
-            for mkey, odds in by_market.items()
+            for mt, odds in by_market.items()
             if odds
         ]
         if not markets:
