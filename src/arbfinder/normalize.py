@@ -30,13 +30,14 @@ import unicodedata
 
 from arbfinder.models import Event, Market
 
+from difflib import SequenceMatcher  # stdlib, immer da -> Fallback fuer Stufe 3 (testbar)
+
 try:  # Stufe 3 bevorzugt rapidfuzz; ohne Paket sauberer Fallback auf difflib.
     from rapidfuzz import fuzz, process
 
     _HAVE_RAPIDFUZZ = True
 except ImportError:  # pragma: no cover - nur ohne rapidfuzz
     _HAVE_RAPIDFUZZ = False
-    from difflib import SequenceMatcher
 
 
 # --------------------------------------------------------------------------- #
