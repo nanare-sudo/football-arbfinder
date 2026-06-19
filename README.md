@@ -229,6 +229,38 @@ nicht "so viel haetten wir verdient" (Ausfuehrbarkeit). Und ein aussagekraeftige
 Arb-Backtest braucht das **volle Bookie-Set** (z.B. Pinnacle), das nur hoehere
 API-Plaene (Business) liefern — sonst fehlen schlicht die Arbs.
 
+### Sofort: kostenlose Schlussquoten + Ergebnisse (Value)
+
+[football-data.co.uk](https://www.football-data.co.uk/) bietet CSV-Dateien zum
+**Download** an (Schlussquoten mehrerer Bookies PLUS Ergebnis je Spiel). Datei
+laden (kein Scraping!), konvertieren, backtesten:
+
+```python
+from arbfinder.providers.footballdata import to_jsonl
+to_jsonl("E0.csv", "data/epl.jsonl")     # CSV -> JSONL (durch normalize.py)
+```
+```bash
+arbfinder backtest --strategy value --data data/epl.jsonl
+```
+
+Weil hier **echte Ergebnisse** vorliegen, ist das der erste Lauf, bei dem das
+`confirmed`-Urteil inhaltlich greifen KANN.
+
+**Echtes Beispiel (3 PL-Saisons, 2022/23–2024/25, 1140 Spiele):** 678 Value-
+Signale, behaupteter In-Sample-Edge ~6.9 %, **realisierter PnL +2061** auf 678
+Wetten (Einsatz je 100 → +3.0 %), Urteil **confirmed**. **Aber ehrlich einordnen:**
+- Konsens-Devig ist nur ein **grober** Schaetzer; +3 % auf Schlussquoten ist viel
+  und kommt wesentlich aus dem Wetten der **grosszuegigsten** Quote je Ausgang
+  (Line-Shopping) — genau das, was Buchmacher mit **Limitierung** von
+  Gewinner-Konten unterbinden (im Backtest nicht modelliert).
+- **Kosten/Provision/Limits** sind NICHT abgezogen; "confirmed" heisst hier
+  "realisierter Edge ueber die Stichprobe war positiv (≥30 Wetten)", nicht
+  "garantierter Profit".
+- Der Out-of-Sample-Split ist fuer dieses **nicht lernende** Modell rechnerisch
+  gleich dem In-Sample (das Modell lernt nichts aus dem Train-Fold; siehe
+  `run_validated`). Ein echter Holdout/Walk-Forward kaeme erst mit einer lernenden
+  Strategie — bis dahin ist "confirmed" als **in-sample-positiv** zu lesen.
+
 ## Leitplanken
 
 - **Nur erkennen & melden, nie automatisch setzen.** Es gibt keine
