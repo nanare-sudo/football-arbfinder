@@ -18,7 +18,8 @@ def test_devig_summe_ist_eins():
 
 def test_devig_rechnet_vig_heraus():
     # Ein Bookie mit Vig: implizite Summe > 1, fair-Summe == 1, Verhaeltnis bleibt.
-    m = ConsensusDevigModel()
+    # min_books=1, weil hier bewusst die Ein-Bookie-Devig-Mathematik geprueft wird.
+    m = ConsensusDevigModel(min_books=1)
     odds = {"A": {"X": 1.5}, "B": {"X": 2.5}}     # implied .6667 + .4 = 1.0667
     fair = m.estimate(odds)
     assert fair is not None

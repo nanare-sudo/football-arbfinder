@@ -104,7 +104,9 @@ der Qualitaet des fairen-Wahrscheinlichkeits-Modells (`fair_probability.py`,
 austauschbar). Der erste Schaetzer **Konsens-Devig** ist bewusst grob: er nimmt
 an, der Markt sei im Mittel fair (Vig herausgerechnet) — was er nicht immer ist.
 Zur Vermeidung von Zirkularitaet wird die faire Wahrscheinlichkeit fuer die beste
-Quote per **Leave-one-out** OHNE genau diesen Bookie geschaetzt. Weil `value`
+Quote per **Leave-one-out** OHNE genau diesen Bookie geschaetzt; es braucht
+danach **mindestens zwei** unabhaengige Bookies (Default `min_books=2`) — ein
+"Konsens" aus einer einzigen Quelle ist keiner und erzeugt kein Signal. Weil `value`
 praediktiv ist, durchlaeuft sie `validation.judge`: ohne Out-of-Sample-Beleg
 lautet das Urteil **"parked"** (vielversprechend, aber noch nicht bestaetigt) —
 nicht "confirmed".

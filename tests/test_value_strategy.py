@@ -1,4 +1,6 @@
+from arbfinder.fair_probability import ConsensusDevigModel
 from arbfinder.strategies import all_strategies, get
+from arbfinder.strategies.value import ValueStrategy
 
 
 def _snap(odds, expected=2, market="h2h", **kw):
@@ -30,11 +32,21 @@ def test_value_ignoriert_fairen_markt():
 
 
 def test_value_einbookie_ausgang_erzeugt_kein_signal():
-    # 'B' hat nur einen Bookie -> kein unabhaengiger Konsens fuer B -> kein B-Signal.
+    # min_books=1 isoliert den Fall: 'B' hat nur einen Bookie -> kein Konsens fuer
+    # B, waehrend A (2 Bookies) feuert. (Der Default min_books=2 wuerde hier — nur
+    # ein vollstaendiger Bookie nach Leave-one-out — gar nichts melden.)
     odds = {"A": {"B1": 1.9, "B2": 2.0}, "B": {"B1": 3.0}}
-    sigs = get("value").evaluate(_snap(odds, expected=2))
+    strat = ValueStrategy(model=ConsensusDevigModel(min_books=1))
+    sigs = strat.evaluate(_snap(odds, expected=2))
     assert all(s.meta["outcome"] != "B" for s in sigs)   # B selektiv verworfen
     assert any(s.meta["outcome"] == "A" for s in sigs)    # ... A feuert weiterhin (nicht alles weg)
+
+
+def test_value_default_min_books_zwei_verwirft_duenne_2bookie_signale():
+    # Mit dem Default (min_books=2) liefert ein 2-Bookie-Markt KEIN Value-Signal:
+    # nach Leave-one-out bliebe nur ein einziger "Konsens"-Bookie.
+    odds = {"A": {"B1": 2.0, "B2": 2.3}, "B": {"B1": 2.0, "B2": 1.8}}
+    assert get("value").evaluate(_snap(odds, expected=2)) == []
 
 
 def test_value_respektiert_vollstaendigkeit():

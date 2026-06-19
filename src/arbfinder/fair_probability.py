@@ -69,15 +69,17 @@ class ConsensusDevigModel(FairProbabilityModel):
     weniger als ``min_books`` Bookies, gibt es keinen unabhaengigen Konsens
     -> ``None``.
 
-    Hinweis zu ``min_books``: Mit dem Default 1 kann der "Konsens" nach
-    Leave-one-out aus einem EINZIGEN unabhaengigen Bookie bestehen — also duenn
-    sein. Fuer eine echte Mehr-Quellen-Bestaetigung ``min_books>=2`` setzen.
-    Duenne Value-Signale faengt ohnehin die Validierung ab (``judge`` -> "parked").
+    Hinweis zu ``min_books`` (Default 2): Nach Leave-one-out muessen MINDESTENS
+    so viele unabhaengige, vollstaendige Bookies uebrig bleiben. Ein "Konsens"
+    aus einem EINZIGEN Bookie ist keiner — gegen dessen blosse Vig-Struktur zu
+    vergleichen erzeugt Rauschen, kein Signal. ``min_books=1`` daher nur bewusst
+    setzen, wenn duenne Ein-Quellen-Signale ausdruecklich gewuenscht sind (sie
+    wuerden von der Validierung ohnehin geparkt).
     """
 
     name = "consensus_devig"
 
-    def __init__(self, min_books: int = 1) -> None:
+    def __init__(self, min_books: int = 2) -> None:
         if min_books < 1:
             raise ValueError("min_books muss >= 1 sein (Konsens braucht >=1 Quelle).")
         self.min_books = min_books

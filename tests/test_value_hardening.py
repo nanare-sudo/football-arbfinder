@@ -26,7 +26,7 @@ def test_coerce_float_verwirft_nan_inf():
 
 
 def test_estimate_ignoriert_nan_bookie_statt_nan_verteilung():
-    m = ConsensusDevigModel()
+    m = ConsensusDevigModel(min_books=1)   # nur b2 bleibt vollstaendig (b1 = NaN)
     fair = m.estimate({"A": {"b1": float("nan"), "b2": 2.0}, "B": {"b1": 2.0, "b2": 2.0}})
     assert fair == {"A": 0.5, "B": 0.5}                      # b1 (NaN) ignoriert
     assert all(math.isfinite(v) for v in fair.values())
@@ -44,8 +44,12 @@ def test_value_kein_signal_bei_nan_inf_quoten():
 # Leave-one-out Gleichstand: beurteilter Preis nie im Konsens (reihenfolge-stabil)
 # --------------------------------------------------------------------------- #
 def test_tie_break_ist_reihenfolge_unabhaengig():
-    o1 = {"home": {"B": 2.10, "A": 2.10, "C": 1.90}, "away": {"A": 1.80, "C": 2.00}}
-    o2 = {"home": {"A": 2.10, "B": 2.10, "C": 1.90}, "away": {"A": 1.80, "C": 2.00}}
+    # A und B liegen bei 'home' gleichauf am Maximum (2.10). Beide muessen aus dem
+    # Konsens fallen; C und D (2 Bookies) bilden ihn -> erfuellt Default min_books=2.
+    o1 = {"home": {"B": 2.10, "A": 2.10, "C": 1.90, "D": 1.95},
+          "away": {"A": 1.95, "B": 1.95, "C": 2.00, "D": 1.90}}
+    o2 = {"home": {"A": 2.10, "B": 2.10, "C": 1.90, "D": 1.95},
+          "away": {"A": 1.95, "B": 1.95, "C": 2.00, "D": 1.90}}
     edge = lambda o: [s.edge_pct for s in get("value").evaluate(_snap(o, expected=2))
                       if s.meta["outcome"] == "home"]
     assert edge(o1) == edge(o2) and edge(o1)                 # gleich, und es feuert
