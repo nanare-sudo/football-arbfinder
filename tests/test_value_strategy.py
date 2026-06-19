@@ -33,13 +33,22 @@ def test_value_einbookie_ausgang_erzeugt_kein_signal():
     # 'B' hat nur einen Bookie -> kein unabhaengiger Konsens fuer B -> kein B-Signal.
     odds = {"A": {"B1": 1.9, "B2": 2.0}, "B": {"B1": 3.0}}
     sigs = get("value").evaluate(_snap(odds, expected=2))
-    assert all(s.meta["outcome"] != "B" for s in sigs)
+    assert all(s.meta["outcome"] != "B" for s in sigs)   # B selektiv verworfen
+    assert any(s.meta["outcome"] == "A" for s in sigs)    # ... A feuert weiterhin (nicht alles weg)
 
 
 def test_value_respektiert_vollstaendigkeit():
     assert get("value").evaluate(_snap({"A": {"B1": 2.0}}, expected=2)) == []  # nur 1 Ausgang
     voll_aber_fehlend = {"A": {"B1": 2.0, "B2": 2.0}, "B": {"B1": 2.0, "B2": 2.0}}
     assert get("value").evaluate(_snap(voll_aber_fehlend, expected=3)) == []   # Ausgang fehlt
+    # Gegenprobe: vollstaendiger 3-Wege-Markt mit Value FEUERT (nicht "immer leer").
+    voll_und_value = {
+        "A": {"B1": 2.0, "B2": 2.0, "B3": 2.8},
+        "B": {"B1": 4.0, "B2": 4.0, "B3": 3.5},
+        "C": {"B1": 4.0, "B2": 4.0, "B3": 3.5},
+    }
+    sigs = get("value").evaluate(_snap(voll_und_value, expected=3))
+    assert any(s.meta["outcome"] == "A" for s in sigs)
 
 
 def test_value_end_to_end_ueber_fixture():
