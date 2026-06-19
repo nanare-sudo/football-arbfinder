@@ -208,6 +208,27 @@ Die Ergebnis-Quelle ist **austauschbar** (`results.ResultSource`): deckt The Odd
 API eine Sportart/Periode nicht ab, kann eine andere Quelle eingehaengt werden.
 Fehlt ein Ergebnis, bleibt `result` offen — es wird **nichts erfunden**.
 
+### Sofort: historischer Backfill (Arbitrage) — statt wochenlang vorwaerts sammeln
+
+```bash
+# ACHTUNG: der historische Endpoint kostet ~10x Credits pro Abruf.
+arbfinder backfill --sport soccer_epl \
+  --from 2024-08-17T11:00:00Z --to 2024-08-17T17:00:00Z --interval 10 \
+  --out data/epl_hist.jsonl --max-snapshots 100
+arbfinder backtest --strategy arbitrage --data data/epl_hist.jsonl
+```
+
+`--from/--to/--interval` sind **Pflicht** (kein versehentliches Verbrennen des
+Kontingents); die geschaetzten Credits werden vorher laut geloggt, und
+`--max-snapshots` bricht ab, bevor ein zu grosser Lauf startet.
+
+**Ehrlich:** 5-10-Minuten-Snapshots zeigen, dass zu diesem Zeitpunkt eine Arb
+**existierte** — NICHT, dass sie lange genug **real setzbar** war. Der historische
+Arbitrage-Backtest liefert damit eine **Obergrenze** gefundener Arbs (Detektion),
+nicht "so viel haetten wir verdient" (Ausfuehrbarkeit). Und ein aussagekraeftiger
+Arb-Backtest braucht das **volle Bookie-Set** (z.B. Pinnacle), das nur hoehere
+API-Plaene (Business) liefern — sonst fehlen schlicht die Arbs.
+
 ## Leitplanken
 
 - **Nur erkennen & melden, nie automatisch setzen.** Es gibt keine
