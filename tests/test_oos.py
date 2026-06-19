@@ -163,6 +163,131 @@ def test_make_plots(tmp_path):
     assert all(os.path.exists(p) and p.endswith(".png") for p in paths)
 
 
+_WF = "tests/data/walkforward"
+
+
+# --------------------------------------------------------------------------- #
+# Walk-Forward: Split, Pooling, Konfidenzintervall, Urteil
+# --------------------------------------------------------------------------- #
+def test_walk_forward_folds_expanding_window():
+    present = {"2020/21", "2021/22", "2022/23", "2023/24", "2024/25"}
+    folds = oos.walk_forward_folds(present, min_train=3)
+    assert [h for _, h in folds] == ["2023/24", "2024/25"]
+    assert folds[0][0] == ("2020/21", "2021/22", "2022/23")     # Train = Vorlauf
+    assert folds[1][0] == ("2020/21", "2021/22", "2022/23", "2023/24")
+    assert oos.walk_forward_folds(present, min_train=5) == []    # zu strenges Fenster
+
+
+def test_pooled_stats_ci():
+    s = oos._pooled_stats([2.0, 4.0, 6.0])
+    assert s["n"] == 3 and s["mean_clv_pct"] == 4.0
+    # Exakte Werte pinnen ddof=1 UND z=1.96 (faengt ddof=0- und z-Mutationen):
+    assert s["std"] == 2.0                                 # ddof=0 -> ~1.633
+    assert s["standard_error"] == pytest.approx(1.155, abs=0.005)
+    assert s["ci95_low"] == pytest.approx(1.737, abs=0.01)   # z=1.0 -> 2.845; ddof=0 -> 2.152
+    assert s["ci95_high"] == pytest.approx(6.263, abs=0.01)
+    assert s["ci_excludes_zero"] is True
+    z = oos._pooled_stats([-2.0, 0.0, 2.0])
+    assert z["mean_clv_pct"] == 0.0 and z["ci_excludes_zero"] is False  # 0 im KI
+    assert oos._pooled_stats([])["n"] == 0
+    one = oos._pooled_stats([5.0])
+    assert one["n"] == 1 and one["ci95_low"] is None     # n<2 -> kein KI
+
+
+def test_wf_confirmed_und_abgesichert_WW():
+    rep, _ = oos.run_walkforward(_WF, candidates=("WW",), uncertain=(), min_samples=2, min_oos=0.5)
+    b = rep["leagues"]["WW"]
+    assert b["consistency"]["label"] == "2/2"
+    assert b["pooled_oos"]["n"] == sum(f["n"] for f in b["folds"])   # Pooling = Summe der Folds
+    assert b["pooled_oos"]["ci_excludes_zero"] is True
+    assert b["verdict"]["status"] == "confirmed" and b["statistically_secured"] is True
+
+
+def test_wf_confirmed_aber_nicht_abgesichert_CC():
+    # CC: gepoolter Mittelwert positiv (>min_oos) UND n ausreichend -> judge confirmed,
+    # ABER ein Fold mit grossem Negativ macht das KI breit -> 0 im KI -> NICHT abgesichert.
+    rep, _ = oos.run_walkforward(_WF, candidates=("CC",), uncertain=(), min_samples=2, min_oos=0.5)
+    b = rep["leagues"]["CC"]
+    assert b["verdict"]["status"] == "confirmed"
+    assert b["pooled_oos"]["ci_excludes_zero"] is False
+    assert b["statistically_secured"] is False
+    txt = oos.walkforward_summary_text(rep)
+    assert "NICHT abgesichert" in txt and "KEINE Liga" in txt    # nichts abgesichert
+
+
+def _fake_wf_report(leagues):
+    return {"meta": {"min_train_seasons": 3}, "leagues": leagues}
+
+
+def test_wf_summary_text_razor_thin_und_no_secured_wording():
+    # Abgesichert, aber KI-Untergrenze < 0.5 -> MUSS als KNAPP markiert sein, NICHT "klar".
+    thin = {"EC": {"uncertain": False, "statistically_secured": True,
+                   "in_sample_mean_clv_pct": 1.7, "consistency": {"label": "2/2"},
+                   "verdict": {"status": "confirmed"},
+                   "pooled_oos": {"n": 48, "mean_clv_pct": 2.45, "ci95_low": 0.25, "ci95_high": 4.64}}}
+    txt = oos.walkforward_summary_text(_fake_wf_report(thin))
+    assert "KNAPP" in txt and "klar ueber 0" not in txt
+    # No-secured-Headline darf NICHT pauschal "0 liegt im KI" behaupten — eine geparkte
+    # Liga kann ein KI strikt ueber 0 haben (nur n zu klein).
+    parked = {"F2": {"uncertain": False, "statistically_secured": False,
+                     "in_sample_mean_clv_pct": 0.95, "consistency": {"label": "2/2"},
+                     "verdict": {"status": "parked"},
+                     "pooled_oos": {"n": 14, "mean_clv_pct": 2.93, "ci95_low": 1.05, "ci95_high": 4.82}}}
+    txt2 = oos.walkforward_summary_text(_fake_wf_report(parked))
+    assert "KEINE Liga ist statistisch abgesichert" in txt2 and "0 liegt im KI" not in txt2
+
+
+def test_wf_zu_wenig_saisons_parked():
+    # Liga mit nur 2 Saisons -> kein Fold bei min_train=3 -> parked (kein Fehlsignal).
+    evs = [_typeA_event(datetime(2022, 8, 13, tzinfo=timezone.utc)),
+           _typeA_event(datetime(2023, 8, 13, tzinfo=timezone.utc))]
+    b = oos.evaluate_league_walkforward(
+        "SS", evs, uncertain=False, bet_source="B365", min_edge=2.0, odds_min=2.0,
+        odds_max=4.0, min_train=3, n_trials=17, min_oos=0.5, min_samples=2)
+    assert b["verdict"]["status"] == "parked" and "nicht genug Saisons" in b["verdict"]["reason"]
+    assert b["folds"] == []
+
+
+def test_wf_missing_league_parked():
+    rep, _ = oos.run_walkforward(_WF, candidates=("ZZ",), uncertain=())
+    assert rep["leagues"]["ZZ"]["verdict"]["status"] == "parked"
+    assert "download_data" in rep["leagues"]["ZZ"]["verdict"]["reason"]
+
+
+def test_wf_report_struktur_und_kein_nan():
+    rep, plotdata = oos.run_walkforward(_WF, candidates=("WW", "CC"), uncertain=(), min_samples=2)
+    m = rep["meta"]
+    assert m["bet_source"] == "B365" and m["min_train_seasons"] == 3
+    assert "normal-approx" in m["ci_method"]
+    summ = oos.walkforward_summary(rep)
+    assert summ["any_secured"] is True and summ["counts"]["confirmed"] == 2
+    assert summ["verdicts"]["WW"]["ci_excludes_zero"] is True
+    s = json.dumps(rep) + json.dumps(summ)
+    assert "NaN" not in s and "Infinity" not in s and _has_no_nonfinite(rep)
+
+
+def test_wf_make_plots(tmp_path):
+    pytest.importorskip("matplotlib")
+    rep, plotdata = oos.run_walkforward(_WF, candidates=("WW", "CC"), uncertain=(), min_samples=2)
+    paths = oos.make_walkforward_plots(rep, plotdata, tmp_path)
+    assert any("walkforward_overview" in p for p in paths)
+    assert all(os.path.exists(p) and p.endswith(".png") for p in paths)
+
+
+def test_wf_cli(tmp_path, capsys):
+    out = tmp_path / "wf.json"
+    summ = tmp_path / "wf_summary.json"
+    rc = cli.main(["oos-test", "--walk-forward", "--csv-dir", _WF,
+                   "--candidates", "WW", "CC", "--uncertain",
+                   "--out-json", str(out), "--summary-json", str(summ), "--min-samples", "2"])
+    assert rc == 0
+    text = capsys.readouterr().out
+    assert "JSON ->" in text and "Walk-Forward" in text
+    summary = json.loads(summ.read_text())
+    assert summary["verdicts"]["WW"]["statistically_secured"] is True
+    assert summary["verdicts"]["CC"]["statistically_secured"] is False
+
+
 def test_cli_oos_test(tmp_path, capsys):
     out = tmp_path / "oos.json"
     summ = tmp_path / "summary.json"

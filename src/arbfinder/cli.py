@@ -292,33 +292,50 @@ def _cmd_oos_test(args: argparse.Namespace) -> int:
         kw["candidates"] = tuple(args.candidates)
     if args.uncertain is not None:
         kw["uncertain"] = tuple(args.uncertain)
+
+    wf = args.walk_forward
+    # Default-Ausgabepfade je Modus (nur, wenn nicht explizit gesetzt).
+    out_path = args.out_json or ("results/walkforward.json" if wf else "results/oos_clv.json")
+    sum_path = args.summary_json or ("results/walkforward_summary.json" if wf else "results/oos_summary.json")
+
     try:
-        report, plotdata = oos.run(
-            args.csv_dir, bet_source=args.bet_source, min_edge=args.min_edge,
-            odds_min=args.odds_min, odds_max=args.odds_max,
-            min_oos=args.min_oos, min_samples=args.min_samples, **kw)
+        if wf:
+            report, plotdata = oos.run_walkforward(
+                args.csv_dir, bet_source=args.bet_source, min_edge=args.min_edge,
+                odds_min=args.odds_min, odds_max=args.odds_max, min_train=args.min_train,
+                min_oos=args.min_oos, min_samples=args.min_samples, **kw)
+            summary = oos.walkforward_summary(report)
+            text = oos.walkforward_summary_text(report)
+            make = oos.make_walkforward_plots
+        else:
+            report, plotdata = oos.run(
+                args.csv_dir, bet_source=args.bet_source, min_edge=args.min_edge,
+                odds_min=args.odds_min, odds_max=args.odds_max,
+                min_oos=args.min_oos, min_samples=args.min_samples, **kw)
+            summary = oos.summary_report(report)
+            text = oos.summary_text(report)
+            make = oos.make_plots
     except (ValueError, OSError) as exc:
         print(f"OOS-Test fehlgeschlagen: {exc}")
         return 1
 
-    out = Path(args.out_json)
+    out = Path(out_path)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, indent=2))
-    print(f"JSON -> {args.out_json}")
+    print(f"JSON -> {out_path}")
 
-    summary = oos.summary_report(report)
-    sout = Path(args.summary_json)
+    sout = Path(sum_path)
     sout.parent.mkdir(parents=True, exist_ok=True)
     sout.write_text(json.dumps(summary, indent=2))
-    print(f"Urteile -> {args.summary_json}")
+    print(f"Urteile -> {sum_path}")
 
     if args.plots:
         try:
-            for pth in oos.make_plots(report, plotdata, args.plots):
+            for pth in make(report, plotdata, args.plots):
                 print(f"Plot -> {pth}")
         except Exception as exc:                       # noqa: BLE001 - z.B. matplotlib fehlt
             print(f"Plots uebersprungen: {exc}")
-    print("\n" + oos.summary_text(report))
+    print("\n" + text)
     return 0
 
 
@@ -437,8 +454,14 @@ def build_parser() -> argparse.ArgumentParser:
                         help="Out-of-Sample-CLV-Holdout fuer die Kandidaten-Ligen (EC/I2/F2; SC3 unsicher)")
     oo.add_argument("--csv-dir", dest="csv_dir", default="data/leagues",
                     help="Ordner mit den Liga-CSVs (Train- + Holdout-Saisons)")
-    oo.add_argument("--out-json", dest="out_json", default="results/oos_clv.json")
-    oo.add_argument("--summary-json", dest="summary_json", default="results/oos_summary.json")
+    oo.add_argument("--walk-forward", dest="walk_forward", action="store_true",
+                    help="rollende Holdouts ueber mehrere Saisons + Pooling + 95%%-KI")
+    oo.add_argument("--min-train", dest="min_train", type=int, default=3,
+                    help="Mindest-Trainingsfenster (Saisons) vor einem Holdout (Walk-Forward)")
+    oo.add_argument("--out-json", dest="out_json", default=None,
+                    help="Default: results/oos_clv.json bzw. results/walkforward.json")
+    oo.add_argument("--summary-json", dest="summary_json", default=None,
+                    help="Default: results/oos_summary.json bzw. results/walkforward_summary.json")
     oo.add_argument("--plots", default=None, help="Ordner fuer die PNG-Plots (matplotlib)")
     oo.add_argument("--bet-source", dest="bet_source", default="B365")
     oo.add_argument("--min-edge", dest="min_edge", type=float, default=2.0)

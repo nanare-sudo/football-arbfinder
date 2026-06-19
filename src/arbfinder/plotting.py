@@ -308,3 +308,89 @@ def plot_oos_overview(rows: list[dict], *, out_path: str = "results/oos_overview
     ax.grid(axis="y", alpha=0.3)
     fig.tight_layout()
     return _save(fig, out_path)
+
+
+def plot_walkforward_league(league: str, folds: list[dict], pooled: dict,
+                            in_sample_mean: float | None, *, status: str = "",
+                            secured: bool = False, uncertain: bool = False,
+                            out_path: str = "results/walkforward_league.png") -> str:
+    """Links: CLV je Fold (Balken) + gepoolte Linie + 95%-KI-Band. Rechts:
+    In-Sample vs. gepoolt-OOS (mit KI-Fehlerbalken auf dem OOS-Balken)."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 4.6))
+
+    # --- links: Fold-fuer-Fold ---
+    labels = [f["holdout_season"] for f in folds]
+    vals = [f["mean_clv_pct"] if f["mean_clv_pct"] is not None else 0.0 for f in folds]
+    ns = [f["n"] for f in folds]
+    bars = ax1.bar(labels, vals, color="#3b6ea5")
+    pm = pooled.get("mean_clv_pct")
+    lo, hi = pooled.get("ci95_low"), pooled.get("ci95_high")
+    if lo is not None and hi is not None:
+        ax1.axhspan(lo, hi, color="#2e8b57", alpha=0.15, label="gepooltes 95%-KI")
+    if pm is not None:
+        ax1.axhline(pm, color="#2e8b57", linewidth=1.6, label=f"gepoolt {pm}%")
+    ax1.axhline(0.0, color="black", linewidth=1.0)
+    for b, n in zip(bars, ns):
+        ax1.text(b.get_x() + b.get_width() / 2, b.get_height(), f"n={n}",
+                 ha="center", va="bottom" if b.get_height() >= 0 else "top", fontsize=8)
+    ax1.set_title("CLV je Holdout-Fold + gepoolt")
+    ax1.set_ylabel("mean CLV pro Wette (%)")
+    ax1.legend(fontsize=8)
+    ax1.grid(axis="y", alpha=0.3)
+
+    # --- rechts: In-Sample vs gepoolt-OOS ---
+    in_v = float(in_sample_mean) if in_sample_mean is not None else 0.0
+    out_v = float(pm) if pm is not None else 0.0
+    yerr = [[0.0, 0.0]]
+    if pm is not None and hi is not None and lo is not None:
+        yerr = [[max(0.0, pm - lo)], [max(0.0, hi - pm)]]
+    ax2.bar(["In-Sample", "gepoolt-OOS"], [in_v, out_v], color=["#3b6ea5", "#2e8b57"])
+    if pm is not None and hi is not None:
+        ax2.errorbar([1], [out_v], yerr=yerr, fmt="none", ecolor="black", capsize=5)
+    ax2.axhline(0.0, color="black", linewidth=1.0)
+    ax2.set_title("In-Sample vs. gepoolt-OOS (95%-KI)")
+    ax2.set_ylabel("mean CLV pro Wette (%)")
+    ax2.grid(axis="y", alpha=0.3)
+
+    sec = "abgesichert" if secured else "NICHT abgesichert"
+    unc = " — UNSICHER" if uncertain else ""
+    fig.suptitle(f"Walk-Forward {league}: {status or 'n/a'} ({sec}){unc}", fontsize=12)
+    fig.tight_layout()
+    return _save(fig, out_path)
+
+
+def plot_walkforward_overview(rows: list[dict], *,
+                              out_path: str = "results/walkforward_overview.png") -> str:
+    """Gepooltes OOS-CLV je Liga mit 95%-KI-Fehlerbalken (sichtbar, ob das KI die 0
+    ausschliesst). Gruen = statistisch abgesichert, sonst grau."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    labels, means, errs, colors = [], [], [], []
+    for r in rows:
+        p = r["pooled"]
+        m = p.get("mean_clv_pct")
+        if m is None:
+            continue
+        labels.append(f"{r['league']}{'*' if r.get('uncertain') else ''}")
+        means.append(m)
+        lo, hi = p.get("ci95_low"), p.get("ci95_high")
+        errs.append((hi - m) if (hi is not None and m is not None) else 0.0)
+        colors.append("#2e8b57" if r.get("secured") else "#9aa0a6")
+    x = range(len(labels))
+    fig, ax = plt.subplots(figsize=(max(7, len(labels) * 1.1), 4.6))
+    ax.bar(x, means, color=colors)
+    ax.errorbar(list(x), means, yerr=errs, fmt="none", ecolor="black", capsize=5)
+    ax.axhline(0.0, color="black", linewidth=1.0)
+    ax.set_xticks(list(x))
+    ax.set_xticklabels(labels)
+    ax.set_title("Gepooltes OOS-CLV je Liga mit 95%-KI (gruen = abgesichert; * = unsicher)")
+    ax.set_ylabel("gepooltes mean CLV (%)")
+    ax.grid(axis="y", alpha=0.3)
+    fig.tight_layout()
+    return _save(fig, out_path)
