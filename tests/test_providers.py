@@ -139,3 +139,25 @@ def test_theoddsapi_ohne_key_wirft_klare_meldung(monkeypatch):
     prov = TheOddsApiProvider(sport="soccer_epl", api_key=None)
     with pytest.raises(ProviderError):
         prov.fetch_events()
+
+
+class _Resp:
+    def __init__(self, data, headers=None):
+        self._data, self.headers = data, headers or {}
+
+    def json(self):
+        return self._data
+
+    def raise_for_status(self):
+        pass
+
+
+def test_theoddsapi_fetch_gemockt_erfasst_kontingent(monkeypatch):
+    import requests
+
+    headers = {"x-requests-remaining": "123", "x-requests-used": "7"}
+    monkeypatch.setattr(requests, "get", lambda *a, **k: _Resp(_SAMPLE, headers))
+    prov = TheOddsApiProvider(sport="soccer_epl", api_key="dummy")
+    events = prov.fetch_events()
+    assert events and events[0].home == "Manchester City"
+    assert prov.last_quota == {"remaining": "123", "used": "7"}   # Verbrauch erfasst

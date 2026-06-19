@@ -166,6 +166,8 @@ class TheOddsApiProvider(OddsProvider):
         self.markets = markets
         self.odds_format = odds_format
         self.base_url = base_url.rstrip("/")
+        # Zuletzt gemeldeter API-Kontingent-Stand (aus den Antwort-Headern).
+        self.last_quota: dict[str, str | None] = {}
 
     def fetch_events(self) -> list[Event]:
         """Holt Live-Quoten. Erfordert ODDS_API_KEY und installiertes ``requests``."""
@@ -189,5 +191,10 @@ class TheOddsApiProvider(OddsProvider):
             "oddsFormat": self.odds_format,
         }
         resp = requests.get(url, params=params, timeout=15)
+        # Kontingent-Header VOR raise_for_status lesen (auch bei Fehlern nuetzlich).
+        self.last_quota = {
+            "remaining": resp.headers.get("x-requests-remaining"),
+            "used": resp.headers.get("x-requests-used"),
+        }
         resp.raise_for_status()
         return parse_response(resp.json())
