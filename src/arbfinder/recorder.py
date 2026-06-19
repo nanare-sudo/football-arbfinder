@@ -65,6 +65,30 @@ def _event_rows(event: Event, queried_at: datetime) -> list[dict[str, Any]]:
     return rows
 
 
+def append_jsonl(path: str | Path, rows: list[dict[str, Any]]) -> int:
+    """Haengt Zeilen an eine JSONL-Datei an (APPEND-ONLY, ensure_ascii=False).
+
+    Eine nicht serialisierbare Zeile wird geloggt und uebersprungen (skip-and-log),
+    statt den Schreibvorgang abzubrechen. Gibt die Zahl geschriebener Zeilen zurueck.
+    Gemeinsam genutzt von Recorder und Backfill, damit das Format identisch bleibt.
+    """
+    if not rows:
+        return 0
+    p = Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    written = 0
+    with p.open("a", encoding="utf-8") as fh:
+        for r in rows:
+            try:
+                line = json.dumps(r, ensure_ascii=False)
+            except (TypeError, ValueError) as exc:
+                logger.warning("Zeile uebersprungen (nicht serialisierbar): %s", exc)
+                continue
+            fh.write(line + "\n")
+            written += 1
+    return written
+
+
 @dataclass
 class Recorder:
     """Fragt einen Provider ab und haengt Snapshots an eine JSONL-Datei an."""
@@ -108,27 +132,8 @@ class Recorder:
         return written
 
     def _append(self, rows: list[dict[str, Any]]) -> int:
-        """Haengt Zeilen an; gibt die Zahl tatsaechlich geschriebener Zeilen zurueck.
-
-        Eine einzelne nicht serialisierbare Zeile wird geloggt und uebersprungen
-        (skip-and-log), statt den ganzen Tick abzubrechen. ``ensure_ascii=False``
-        haelt Teamnamen (z.B. 'Bayern München') im Klartext lesbar.
-        """
-        if not rows:
-            return 0
-        path = Path(self.out_path)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        written = 0
-        with path.open("a", encoding="utf-8") as fh:      # APPEND-ONLY
-            for r in rows:
-                try:
-                    line = json.dumps(r, ensure_ascii=False)
-                except (TypeError, ValueError) as exc:
-                    logger.warning("Zeile uebersprungen (nicht serialisierbar): %s", exc)
-                    continue
-                fh.write(line + "\n")
-                written += 1
-        return written
+        """Haengt Zeilen an (delegiert an append_jsonl); gibt #geschrieben zurueck."""
+        return append_jsonl(self.out_path, rows)
 
     def start(self, interval_minutes: float) -> None:  # pragma: no cover - blockierend
         """Startet die periodische Aufzeichnung (blockiert bis Ctrl-C)."""

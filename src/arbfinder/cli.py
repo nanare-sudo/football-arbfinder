@@ -167,6 +167,31 @@ def _cmd_fetch_results(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_backfill(args: argparse.Namespace) -> int:
+    from arbfinder.backfill import backfill
+    from arbfinder.providers import TheOddsApiProvider
+    from arbfinder.providers.base import ProviderError, parse_datetime
+
+    provider = TheOddsApiProvider(sport=args.sport, regions=args.regions, markets=args.markets)
+    if not provider.api_key:
+        print("Kein ODDS_API_KEY gesetzt — historischer Backfill braucht eine lizenzierte API.")
+        return 1
+    try:
+        stats = backfill(
+            provider,
+            start=parse_datetime(args.start), end=parse_datetime(args.end),
+            interval_minutes=args.interval, out_path=args.out,
+            max_snapshots=args.max_snapshots,
+        )
+    except (ValueError, ProviderError) as exc:    # u.a. ueber max_snapshots -> klare Meldung
+        print(f"Backfill abgebrochen: {exc}")
+        return 1
+    print(f"Backfill: {stats.snapshots} Snapshots, {stats.rows} Zeilen, "
+          f"{stats.skipped} uebersprungen -> {args.out} | "
+          f"Kontingent verbleibend: {stats.credits_remaining}")
+    return 0
+
+
 # --------------------------------------------------------------------------- #
 # Parser
 # --------------------------------------------------------------------------- #
@@ -211,6 +236,21 @@ def build_parser() -> argparse.ArgumentParser:
     fr.add_argument("--days-from", dest="days_from", type=int, default=3,
                     help="Wie viele Tage zurueck Ergebnisse abgefragt werden")
     fr.set_defaults(func=_cmd_fetch_results)
+
+    bf = sub.add_parser("backfill",
+                        help="Historische Quoten ueber The Odds API nachladen (ACHTUNG: 10x Credits)")
+    bf.add_argument("--sport", required=True, help="Sport-Key (z.B. soccer_epl)")
+    bf.add_argument("--from", dest="start", required=True,
+                    help="Start ISO8601, z.B. 2024-08-01T12:00:00Z (Pflicht)")
+    bf.add_argument("--to", dest="end", required=True, help="Ende ISO8601 (Pflicht)")
+    bf.add_argument("--interval", type=float, required=True,
+                    help="Intervall in Minuten, z.B. 10 (Pflicht; passend zur API-Aufloesung)")
+    bf.add_argument("--out", default="data/historical_odds.jsonl")
+    bf.add_argument("--regions", default="eu")
+    bf.add_argument("--markets", default="h2h")
+    bf.add_argument("--max-snapshots", dest="max_snapshots", type=int, default=100,
+                    help="Sicherheits-Obergrenze; bewusst erhoehen fuer grosse (teure) Laeufe")
+    bf.set_defaults(func=_cmd_backfill)
 
     return p
 
