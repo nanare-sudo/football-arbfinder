@@ -32,7 +32,14 @@ from pathlib import Path
 from typing import Any
 from arbfinder.models import count_priced_outcomes
 from arbfinder.strategies import get
-from arbfinder.validation import Verdict, judge
+from arbfinder.validation import Verdict, judge, purged_split
+
+# Ehrlicher Hinweis fuer den Output praediktiver Strategien (siehe run_validated).
+VALIDATION_NOTE = (
+    "Hinweis: In-/Out-of-Sample-Split (purged_split) ist verdrahtet & getestet, "
+    "aber nur ein Mechanismus — aussagekraeftig erst mit genug historischen Quoten "
+    "UND Ergebnissen. Bei duenner Datenlage bleibt das Urteil bewusst 'parked'."
+)
 
 
 @dataclass
@@ -142,6 +149,68 @@ def make_verdict(
     )
 
 
+def run_validated(
+    strategy_name: str,
+    snapshots_path: str | Path,
+    *,
+    k: int = 5,
+    embargo: float = 0.01,
+    min_samples: int = 30,
+    **kwargs: Any,
+) -> tuple[BacktestResult, Verdict]:
+    """Backtest MIT In-/Out-of-Sample-Validierung fuer praediktive Strategien.
+
+    Reine Arbitrage (``requires_validation=False``) braucht kein OOS -> direktes
+    Urteil. Fuer praediktive Strategien wird ueber ``validation.purged_split`` ein
+    zeitlich geordneter In-/Out-of-Sample-Split gelegt und auf den Test-Folds das
+    REALISIERTE Ergebnis (PnL je Einsatz) der Signale berechnet, die einen
+    bekannten Ausgang ('result') haben. Dieses Out-of-Sample-Ergebnis plus die
+    Zahl der belegten OOS-Wetten (``n_samples``) gehen in ``judge`` ein.
+
+    EHRLICHE EINORDNUNG (nicht ueberverkaufen): Der Split ist verdrahtet und
+    getestet, aber NUR ein Mechanismus. Echte Validierung braucht ausreichend
+    historische Quoten UND Ergebnisse. Solange zu wenige belegte OOS-Wetten
+    vorliegen (``n_samples < min_samples``) ODER gar keine Ergebnisse existieren,
+    bleibt das Urteil bewusst "parked" — NICHT faelschlich "confirmed". Mit der
+    winzigen Beispiel-Fixture ist somit nur der MECHANISMUS getestet, keine
+    inhaltliche Bestaetigung.
+    """
+    result = run(strategy_name, snapshots_path, **kwargs)
+    strat = get(strategy_name)
+    for key, val in kwargs.items():
+        setattr(strat, key, val)
+
+    if not getattr(strat, "requires_validation", True):
+        return result, make_verdict(strategy_name, result)   # Arbitrage: kein OOS noetig
+
+    # Zeitlich ordnen, dann purged k-fold: jede Zeile genau einmal out-of-sample.
+    rows = sorted(
+        load_snapshots(snapshots_path),
+        key=lambda r: str(r.get("commence_time") or r.get("ts") or ""),
+    )
+    pnl = 0.0
+    staked = 0.0
+    n_oos = 0
+    if len(rows) >= k:
+        for _train, test in purged_split(len(rows), k=k, embargo=embargo):
+            for i in test:
+                ev = rows[i]
+                outcome = ev.get("result")
+                if not outcome:
+                    continue            # ohne Ergebnis kein realisierter OOS-Beleg
+                for s in strat.evaluate(ev):
+                    pnl += _simulate_pnl(s.stakes, outcome, ev.get("odds", {}))
+                    staked += sum(s.stakes.values())
+                    n_oos += 1
+
+    oos_edge = round(pnl / staked * 100.0, 3) if staked > 0 else None
+    verdict = make_verdict(
+        strategy_name, result,
+        out_of_sample_edge=oos_edge, n_samples=n_oos, min_samples=min_samples,
+    )
+    return result, verdict
+
+
 def main(argv: list[str] | None = None) -> None:
     import argparse
     p = argparse.ArgumentParser(description="Backtest einer Strategie")
@@ -150,8 +219,7 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--out", default="results/last_backtest.json")
     args = p.parse_args(argv)
 
-    res = run(args.strategy, args.data)
-    verdict = make_verdict(args.strategy, res)
+    res, verdict = run_validated(args.strategy, args.data)
 
     out = res.to_dict()                 # Metriken bleiben top-level (plotting!)
     out["verdict"] = verdict.to_dict()  # Urteil daneben mit reingeschrieben
@@ -159,6 +227,8 @@ def main(argv: list[str] | None = None) -> None:
     Path(args.out).write_text(json.dumps(out, indent=2))
     print(json.dumps(out, indent=2))
     print(f"\nUrteil ({args.strategy}): {verdict.status.upper()} — {verdict.reason}")
+    if getattr(get(args.strategy), "requires_validation", True):
+        print(VALIDATION_NOTE)
 
 
 if __name__ == "__main__":

@@ -18,7 +18,7 @@ from typing import Any
 from arbfinder import backtest
 from arbfinder.detector import DetectionResult, detect
 from arbfinder.providers import get_provider
-from arbfinder.strategies import Signal, all_strategies
+from arbfinder.strategies import Signal, all_strategies, get
 
 
 # --------------------------------------------------------------------------- #
@@ -115,8 +115,7 @@ def _cmd_backtest(args: argparse.Namespace) -> int:
     out_path = Path(args.out)
     old = json.loads(out_path.read_text()) if out_path.exists() else None
 
-    res = backtest.run(args.strategy, args.data)
-    verdict = backtest.make_verdict(args.strategy, res)
+    res, verdict = backtest.run_validated(args.strategy, args.data)
     data = res.to_dict()
     data["verdict"] = verdict.to_dict()
 
@@ -124,6 +123,8 @@ def _cmd_backtest(args: argparse.Namespace) -> int:
     out_path.write_text(json.dumps(data, indent=2))
     print(json.dumps(data, indent=2))
     print(f"\nUrteil ({args.strategy}): {verdict.status.upper()} — {verdict.reason}")
+    if getattr(get(args.strategy), "requires_validation", True):
+        print(backtest.VALIDATION_NOTE)
     if old:
         _compare_and_warn(old, data)
     return 0

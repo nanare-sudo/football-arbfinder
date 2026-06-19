@@ -47,3 +47,29 @@ def test_value_requires_validation_steuert_judge():
 
     assert get("value").requires_validation is True
     assert get("arbitrage").requires_validation is False
+
+
+# --------------------------------------------------------------------------- #
+# A3: In-/Out-of-Sample-Split (purged_split) — Mechanismus & ehrliche Einordnung
+# --------------------------------------------------------------------------- #
+def test_run_validated_value_duenne_daten_bleibt_parked():
+    # Mechanismus laeuft (OOS-Edge wird aus den 2 belegten Events berechnet),
+    # aber zu wenige OOS-Belege -> bewusst "parked", NICHT faelschlich confirmed.
+    res, v = backtest.run_validated("value", "fixtures/recorded_odds.jsonl")
+    assert v.status == "parked"
+    assert v.out_of_sample_edge is not None          # Split hat etwas berechnet
+    assert v.details["n_samples"] < v.details["min_samples"]   # zu duenn belegt
+
+
+def test_run_validated_mechanismus_kann_confirmen_wenn_genug_belege():
+    # Beweis, dass der confirmed-Pfad ERREICHBAR ist: dieselben 2 OOS-Wetten,
+    # aber die Sample-Schwelle gesenkt -> positiver OOS-Edge fuehrt zu confirmed.
+    res, v = backtest.run_validated("value", "fixtures/recorded_odds.jsonl", min_samples=1)
+    assert v.out_of_sample_edge is not None and v.out_of_sample_edge > 0
+    assert v.status == "confirmed"
+
+
+def test_run_validated_arbitrage_braucht_kein_oos():
+    res, v = backtest.run_validated("arbitrage", "fixtures/recorded_odds.jsonl")
+    assert v.status == "confirmed"
+    assert v.out_of_sample_edge is None              # Arbitrage: kein OOS-Schritt

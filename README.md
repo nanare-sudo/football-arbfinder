@@ -111,6 +111,17 @@ praediktiv ist, durchlaeuft sie `validation.judge`: ohne Out-of-Sample-Beleg
 lautet das Urteil **"parked"** (vielversprechend, aber noch nicht bestaetigt) —
 nicht "confirmed".
 
+Ein In-/Out-of-Sample-Split (`validation.purged_split`) ist **verdrahtet**
+(`backtest.run_validated`): auf den Test-Folds wird das *realisierte* Ergebnis
+der Signale mit bekanntem Ausgang berechnet und an `judge` gegeben. Damit ist
+der `confirmed`-Pfad fuer praediktive Strategien grundsaetzlich erreichbar —
+**aber ehrlich:** der Split ist nur ein Mechanismus. Aussagekraeftig wird er
+erst mit ausreichend historischen Quoten UND Ergebnissen. Bei zu wenigen
+belegten OOS-Wetten (oder ganz ohne Ergebnisse) bleibt das Urteil bewusst
+`parked` — es wird **nicht faelschlich** `confirmed`. Mit der winzigen
+Beispiel-Fixture ist somit nur der Mechanismus getestet, keine inhaltliche
+Bestaetigung.
+
 ## Validierung — gegen Selbstbetrug, ohne Gutes zu verwerfen
 
 Jeder Backtest liefert ein dreistufiges Urteil (`validation.judge`):
