@@ -290,6 +290,41 @@ Gesamtgewinnen, bewusst nicht am winzigen Netto — sonst explodieren sie ueber
 kein echter Edge — kein lernendes Modell bauen, der Edge scheitert schon an der
 Realitaet.**
 
+### Die verteidigbare Version: Pinnacle-Anker + Closing Line Value (`arbfinder pinnacle-run`)
+
+Statt des entlarvten Konsens-Devig-Ankers: Pinnacle (schaerfster Bookie) als
+fairer Anker und **CLV als PRIMAERE Metrik** — die genommene Quote gegen die
+Pinnacle-SCHLUSSquote: `CLV = genommene_quote / pinnacle_schluss - 1`. Positives
+CLV (eine bessere Quote als die scharfe Schlusslinie zu bekommen) ist der
+fuehrende Edge-Indikator, braucht KEINE Ergebnisse und ist weniger verrauscht als
+PnL.
+
+```bash
+arbfinder pinnacle-run --csv data/E0_2223.csv data/E0_2324.csv data/E0_2425.csv \
+  --out-json results/pinnacle_clv_run.json --plots results --bet-source Max --anchor open
+```
+schreibt eine allein interpretierbare JSON (Pinnacle- vs. Konsens-Anker: CLV,
+PnL flat/¼-Kelly, Drawdown/Ruin, by_season/bookie/bucket, Preis-Abschlag) und
+sechs Plots.
+
+**Befund (3 echte PL-Saisons, Anker = Pinnacle-Eroeffnung):** mit Bet-Quelle
+**Max** ist das CLV scheinbar stark (+8.1 %, in 77 % der Wetten positiv) — **aber
+das ist groesstenteils ein Line-Shopping-Artefakt**: „Max" ist das MARKT-MAXIMUM
+ueber viele Bookies, das eine einzelne scharfe Schlussquote fast zwangslaeufig
+schlaegt. Wettet man stattdessen eine **EINZELNE** Quelle (`--bet-source B365`),
+faellt das CLV auf **+2.7 % (55 % positiv)** — knapp an der Effizienzgrenze. Und
+**keine** Variante traegt sich als PnL: flat aus 100 € **ruiniert** mit Max
+(→ 0 €), endet mit B365 bei ~88 €; der Saison-Vorzeichenwechsel ist **nicht**
+behoben. **Verdict: NICHT bestaetigt** — positives CLV ohne PnL-Bestaetigung,
+und das starke CLV ist Line-Shopping, kein Prognose-Skill.
+
+**Ehrliche Einordnung:** Die EPL ist einer der effizientesten Maerkte — der
+haerteste Ort fuer Value; ein hier duenner/fehlender Edge schliesst weniger
+liquide Ligen NICHT aus. Pinnacle-Schluss zu schlagen ist eine starke
+Behauptung; das saubere Ein-Quellen-CLV (+2.7 %) ist genau das, was man an der
+Effizienzgrenze erwartet. Kosten/Steuern/Limits sind weiterhin nicht modelliert
+(gerade die grosszuegigen Ausreisser-Bookies limitieren Gewinner zuerst).
+
 ## Leitplanken
 
 - **Nur erkennen & melden, nie automatisch setzen.** Es gibt keine

@@ -214,6 +214,30 @@ def _cmd_diagnose(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_pinnacle_run(args: argparse.Namespace) -> int:
+    from arbfinder import pinnacle
+
+    try:
+        report, plotdata = pinnacle.run(
+            args.csv, bet_source=args.bet_source, anchor=args.anchor, min_edge=args.min_edge)
+    except (ValueError, OSError) as exc:
+        print(f"Pinnacle-Lauf fehlgeschlagen: {exc}")
+        return 1
+
+    out = Path(args.out_json)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(report, indent=2))
+    print(f"JSON -> {args.out_json}")
+    if args.plots:
+        try:
+            for pth in pinnacle.make_plots(plotdata, args.plots):
+                print(f"Plot -> {pth}")
+        except Exception as exc:                       # noqa: BLE001 - z.B. matplotlib fehlt
+            print(f"Plots uebersprungen: {exc}")
+    print("\n" + pinnacle.summary_text(report))
+    return 0
+
+
 # --------------------------------------------------------------------------- #
 # Parser
 # --------------------------------------------------------------------------- #
@@ -290,6 +314,17 @@ def build_parser() -> argparse.ArgumentParser:
     dg.add_argument("--out", default=None, help="optional: Pfad fuer den JSON-Report")
     dg.add_argument("--plot", default=None, help="optional: Pfad fuer den Bankroll-Plot (matplotlib)")
     dg.set_defaults(func=_cmd_diagnose)
+
+    pr = sub.add_parser("pinnacle-run",
+                        help="Pinnacle-Anker + Closing Line Value (CLV) auf E0-CSVs")
+    pr.add_argument("--csv", nargs="+", required=True, help="football-data E0 CSV-Datei(en)")
+    pr.add_argument("--out-json", dest="out_json", default="results/pinnacle_clv_run.json")
+    pr.add_argument("--plots", default=None, help="Ordner fuer die PNG-Plots (matplotlib)")
+    pr.add_argument("--bet-source", dest="bet_source", default="Max", help="Bet-Quelle (Max|B365|...)")
+    pr.add_argument("--anchor", default="open", choices=["open", "close"],
+                    help="Pinnacle-Anker: Eroeffnung (default) oder Schluss")
+    pr.add_argument("--min-edge", dest="min_edge", type=float, default=2.0)
+    pr.set_defaults(func=_cmd_pinnacle_run)
 
     return p
 

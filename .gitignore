@@ -4,4 +4,6 @@ __pycache__/
 .env
 *.egg-info/
 results/*.png
+results/pinnacle_clv_run.json
+results/diagnosis.json
 /data/
