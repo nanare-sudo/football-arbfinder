@@ -9,6 +9,7 @@ dev = ["pytest>=8.0"]
 plot = ["matplotlib>=3.7"]
 fuzzy = ["rapidfuzz>=3.0"]
 live = ["requests>=2.31"]            # nur fuer den echten Odds-API-Provider noetig
+agent = ["apscheduler>=3.10"]        # nur fuer den periodischen Agent noetig
 
 [project.scripts]
 arbfinder = "arbfinder.cli:main"
