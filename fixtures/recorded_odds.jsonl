@@ -1,0 +1,5 @@
+// Aufgezeichnete Snapshots fuer Backtests. Eine Zeile = ein Event-Snapshot.
+// Erweitere das — je mehr echte Daten mit 'result', desto aussagekraeftiger.
+{"ts":"2026-08-15T13:00:00Z","event_id":"e1","event_name":"Man City v Arsenal","market":"h2h","expected_outcomes":3,"odds":{"Man City":{"BookieA":2.05,"BookieB":2.12},"Draw":{"BookieA":3.60,"BookieB":3.75},"Arsenal":{"BookieA":4.20,"BookieB":4.10}},"result":"Man City"}
+{"ts":"2026-08-15T13:00:00Z","event_id":"e2","event_name":"Liverpool v Chelsea","market":"h2h","expected_outcomes":3,"odds":{"Liverpool":{"BookieA":1.95},"Chelsea":{"BookieA":3.80}},"result":"Chelsea"}
+{"ts":"2026-08-15T13:00:00Z","event_id":"e3","event_name":"Spurs v United","market":"h2h","expected_outcomes":3,"odds":{"Spurs":{"BookieA":2.60,"BookieB":2.75},"Draw":{"BookieA":3.40,"BookieB":3.55},"United":{"BookieA":2.90,"BookieB":3.05}},"result":"Draw"}
