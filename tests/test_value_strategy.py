@@ -84,3 +84,51 @@ def test_value_edge_formel():
     assert abs(a.edge_pct - 20.0) < 1e-6
     assert a.meta["best"] == ["JUICY", 2.4]
     assert abs(a.meta["fair_prob"] - 0.5) < 1e-6
+
+
+# --------------------------------------------------------------------------- #
+# PinnacleValueStrategy (scharfer Pinnacle-Anker, Bet auf Max-Eroeffnung)
+# --------------------------------------------------------------------------- #
+def _pinn_snap(odds, expected=3):
+    return {"event_id": "p", "event_name": "H v A", "market": "h2h",
+            "expected_outcomes": expected, "odds": odds}
+
+
+_PINN_ODDS = {
+    "H": {"PS": 2.0, "Max": 2.4, "PSC": 2.2},
+    "D": {"PS": 3.6, "Max": 3.8, "PSC": 3.5},
+    "A": {"PS": 4.0, "Max": 4.3, "PSC": 3.8},
+}
+
+
+def test_pinnacle_value_registriert_und_validierungspflichtig():
+    assert "pinnacle_value" in all_strategies()
+    assert get("pinnacle_value").requires_validation is True
+
+
+def test_pinnacle_value_feuert_auf_max_vs_pinnacle():
+    from arbfinder.strategies.value import PinnacleValueStrategy
+    sigs = PinnacleValueStrategy(bet_source="Max", anchor="open", min_edge_pct=2.0).evaluate(_pinn_snap(_PINN_ODDS))
+    h = next(s for s in sigs if s.meta["outcome"] == "H")
+    assert h.edge_pct > 10                                # Max 2.4 vs faire ~0.486 -> ~16.8%
+    assert h.meta["best"] == ["Max", 2.4]
+    assert h.meta["clv_close"] == 2.2                     # Pinnacle-Schluss fuer CLV
+    assert h.kind == "value"
+
+
+def test_pinnacle_value_anker_open_vs_close_aendert_edge():
+    from arbfinder.strategies.value import PinnacleValueStrategy
+    eo = next(s for s in PinnacleValueStrategy(bet_source="Max", anchor="open").evaluate(_pinn_snap(_PINN_ODDS))
+              if s.meta["outcome"] == "H").edge_pct
+    ec = next(s for s in PinnacleValueStrategy(bet_source="Max", anchor="close").evaluate(_pinn_snap(_PINN_ODDS))
+              if s.meta["outcome"] == "H").edge_pct
+    assert abs(eo - ec) > 1e-6                            # Anker-Wahl wirkt sich aus
+
+
+def test_pinnacle_value_kein_signal_wenn_bet_gleich_pinnacle():
+    from arbfinder.strategies.value import PinnacleValueStrategy
+    fair_market = {"H": {"PS": 2.0, "Max": 2.0, "PSC": 2.0},
+                   "D": {"PS": 3.6, "Max": 3.6, "PSC": 3.6},
+                   "A": {"PS": 4.0, "Max": 4.0, "PSC": 4.0}}
+    sigs = PinnacleValueStrategy(bet_source="Max", min_edge_pct=2.0).evaluate(_pinn_snap(fair_market))
+    assert all(s.meta["outcome"] != "H" for s in sigs)   # H: Max=PS -> nur Vig, kein Value
