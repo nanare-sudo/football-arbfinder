@@ -238,6 +238,52 @@ def _cmd_pinnacle_run(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_league_scan(args: argparse.Namespace) -> int:
+    from arbfinder import leaguescan
+
+    criteria = {}
+    if args.min_mean_clv is not None:
+        criteria["min_mean_clv_pct"] = args.min_mean_clv
+    if args.min_share is not None:
+        criteria["min_share_positive_pct"] = args.min_share
+    if args.min_bets is not None:
+        criteria["min_bets"] = args.min_bets
+
+    try:
+        report, plotdata = leaguescan.scan(
+            args.csv_dir, bet_source=args.bet_source, min_edge=args.min_edge,
+            odds_min=args.odds_min, odds_max=args.odds_max,
+            robust_criteria=criteria or None)
+    except (ValueError, OSError) as exc:
+        print(f"Liga-Scan fehlgeschlagen: {exc}")
+        return 1
+
+    out = Path(args.out_json)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(report, indent=2))
+    print(f"JSON -> {args.out_json}")
+
+    best = leaguescan.best_league_report(report)
+    best_out = Path(args.best_json)
+    best_out.parent.mkdir(parents=True, exist_ok=True)
+    best_out.write_text(json.dumps(best, indent=2))
+    print(f"Beste Liga -> {args.best_json}")
+
+    if args.plots:
+        try:
+            for pth in leaguescan.make_plots(report, plotdata, args.plots):
+                print(f"Plot -> {pth}")
+        except Exception as exc:                       # noqa: BLE001 - z.B. matplotlib fehlt
+            print(f"Plots uebersprungen: {exc}")
+
+    if report["meta"]["skipped_files"]:
+        print(f"\n{report['meta']['n_files_skipped']} CSV(s) uebersprungen "
+              f"(keine PS*/Bet-Quelle): "
+              + ", ".join(s["file"] for s in report["meta"]["skipped_files"]))
+    print("\n" + leaguescan.summary_text(report))
+    return 0
+
+
 # --------------------------------------------------------------------------- #
 # Parser
 # --------------------------------------------------------------------------- #
@@ -325,6 +371,29 @@ def build_parser() -> argparse.ArgumentParser:
                     help="Pinnacle-Anker: Eroeffnung (default) oder Schluss")
     pr.add_argument("--min-edge", dest="min_edge", type=float, default=2.0)
     pr.set_defaults(func=_cmd_pinnacle_run)
+
+    ls = sub.add_parser("league-scan",
+                        help="Pinnacle-Anker + devigtes CLV ueber mehrere (weniger liquide) Ligen")
+    ls.add_argument("--csv-dir", dest="csv_dir", required=True,
+                    help="Ordner mit football-data CSVs (je Liga eine/mehrere Dateien)")
+    ls.add_argument("--out-json", dest="out_json", default="results/league_scan.json")
+    ls.add_argument("--best-json", dest="best_json", default="results/best_league.json")
+    ls.add_argument("--plots", default=None, help="Ordner fuer die PNG-Plots (matplotlib)")
+    ls.add_argument("--bet-source", dest="bet_source", default="B365",
+                    help="EINE realistisch erreichbare Quelle (Default B365, NICHT Max)")
+    ls.add_argument("--min-edge", dest="min_edge", type=float, default=2.0,
+                    help="Mindest-Edge (%%) am Eroeffnungs-Anker fuer die Selektion")
+    ls.add_argument("--odds-min", dest="odds_min", type=float, default=2.0,
+                    help="untere Quotengrenze (moderate Quoten, Default 2.0)")
+    ls.add_argument("--odds-max", dest="odds_max", type=float, default=4.0,
+                    help="obere Quotengrenze (moderate Quoten, Default 4.0)")
+    ls.add_argument("--min-mean-clv", dest="min_mean_clv", type=float, default=None,
+                    help="Robust-Schwelle: Mindest-mean-CLV %% (Default 0.5)")
+    ls.add_argument("--min-share", dest="min_share", type=float, default=None,
+                    help="Robust-Schwelle: Mindest-Anteil positiver CLV %% (Default 55)")
+    ls.add_argument("--min-bets", dest="min_bets", type=int, default=None,
+                    help="Robust-Schwelle: Mindest-Stichprobe (Default 50)")
+    ls.set_defaults(func=_cmd_league_scan)
 
     return p
 

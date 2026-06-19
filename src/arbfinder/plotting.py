@@ -199,3 +199,41 @@ def plot_bankroll(curves: dict[str, list[float]], start_capital: float = 100.0,
     fig.savefig(out_path, dpi=130)
     plt.close(fig)
     return out_path
+
+
+def plot_league_clv(ranking: list[dict], *,
+                    out_path: str = "results/league_clv.png") -> str:
+    """Mittleres CLV je Liga als sortierte Balken (gegen die devigte Pinnacle-Schluss).
+
+    Erwartet die ``ranking``-Liste aus leaguescan (bereits nach mean_clv sortiert):
+    je Eintrag ``{league, mean_clv_pct, n_with_clv, robust}``. Gruen = robust,
+    blau = positiv aber nicht robust, rot = negativ. n wird annotiert (Klein-N
+    bleibt sichtbar).
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    rows = [r for r in ranking if r.get("mean_clv_pct") is not None]
+    labels = [r["league"] for r in rows]
+    vals = [r["mean_clv_pct"] for r in rows]
+    ns = [r.get("n_with_clv") or 0 for r in rows]
+
+    def color(r: dict, v: float) -> str:
+        if r.get("robust"):
+            return "#2e8b57"          # robust positiv
+        return "#3b6ea5" if v > 0 else "#c0392b"
+
+    colors = [color(r, v) for r, v in zip(rows, vals)]
+    fig, ax = plt.subplots(figsize=(max(7, len(labels) * 0.9), 4.6))
+    bars = ax.bar(labels, vals, color=colors)
+    ax.axhline(0.0, color="black", linewidth=1.0)
+    for b, n in zip(bars, ns):
+        ax.text(b.get_x() + b.get_width() / 2, b.get_height(), f"n={n}",
+                ha="center", va="bottom" if b.get_height() >= 0 else "top", fontsize=8)
+    ax.set_title("Mittleres CLV je Liga — gegen DEVIGTE Pinnacle-Schluss "
+                 "(gruen=robust, blau=+ nicht robust, rot=−)")
+    ax.set_ylabel("mean CLV pro Wette (%)")
+    ax.grid(axis="y", alpha=0.3)
+    fig.tight_layout()
+    return _save(fig, out_path)

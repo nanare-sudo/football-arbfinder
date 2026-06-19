@@ -28,7 +28,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Callable
+from typing import Any, Callable, Sequence
 import logging
 
 from arbfinder import backtest
@@ -119,7 +119,7 @@ class SimResult:
 # Schritt 1: Bankroll-Management (Konto als bindende Grenze)
 # --------------------------------------------------------------------------- #
 def simulate(
-    bets: list[BetRecord],
+    bets: Sequence[BetRecord],
     *,
     rule: str,
     start_capital: float = 100.0,

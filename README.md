@@ -329,6 +329,40 @@ Behauptung; das saubere Ein-Quellen-CLV (+2.7 %) ist genau das, was man an der
 Effizienzgrenze erwartet. Kosten/Steuern/Limits sind weiterhin nicht modelliert
 (gerade die grosszuegigen Ausreisser-Bookies limitieren Gewinner zuerst).
 
+### Liga-Scan ueber weniger liquide Ligen (`arbfinder league-scan`)
+
+Die EPL ist zu effizient. Dieser Scan wendet dieselbe Pinnacle-Anker-Methode auf
+einen ganzen Ordner von football-data CSVs an, je Liga getrennt, und sucht eine
+Liga mit SAUBER positivem CLV. Drei bewusst strengere Korrekturen:
+
+1. **Bet-Quelle = eine realistisch erreichbare Quelle** (Default `B365`), nicht
+   das Markt-Maximum `Max` (das misst Line-Shopping, kein Prognose-Skill).
+2. **CLV gegen die DEVIGTE Pinnacle-Schluss** (faire no-vig Linie), nicht die rohe
+   Quote mit Marge: `CLV = bet * devig(PSC) - 1`. Das ist die haertere Messlatte
+   — die rohe Schlussquote ist durch die Vig verkuerzt und schmeichelt dem Wetter.
+3. **Fokus auf moderate Quoten 2.0–4.0** (Aussenseiter-/Longshot-Falle vermeiden).
+
+```bash
+arbfinder league-scan --csv-dir data --plots results
+# -> results/league_scan.json (Ranking nach mean_clv, robust-Markierung je Liga)
+# -> results/best_league.json (nur die beste Liga, zum Hochladen)
+```
+Eine Liga gilt als **robust** nur bei mean_clv deutlich >0 UND Anteil positiver
+CLV >55 % UND ueber MEHRERE Quoten-Buckets verteilt (nicht nur einem) UND
+ausreichender Stichprobe. Zeigt keine Liga das, wird das klar gesagt.
+
+**Befund auf den vorhandenen Daten (nur EPL/E0 liegt als CSV vor):** Mit `B365`
+schlaegt die Eroeffnung die scharfe Pinnacle-Eroeffnung kaum — von 49 Edge-
+Treffern liegen **46 bei Quoten >4.0 (Longshots)** und nur **3** im moderaten
+Bereich 2.0–4.0 (im Mittel ist `B365` dort sogar ~5 % *enger* als Pinnacle fair).
+Die Korrektur „moderate Quoten" entfernt also genau die Longshot-Falle, in der
+fast der gesamte scheinbare „Value" steckte — und auf der effizienten EPL bleibt
+zu Recht **nichts Belastbares** uebrig (n=3, nicht interpretierbar). Der
+`odds_filter_diag`-Block je Liga macht diese Beschneidung sichtbar (kein stilles
+Wegschneiden). **Um weniger liquide Ligen zu testen** (E1/E2/E3, D2, I2, SP2, F2,
+N1, B1, P1, T1, G1, …) muessen deren football-data-CSVs in den `--csv-dir` gelegt
+werden — sie werden hier nicht heruntergeladen (kein Scraping).
+
 ## Leitplanken
 
 - **Nur erkennen & melden, nie automatisch setzen.** Es gibt keine

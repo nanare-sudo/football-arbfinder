@@ -6,4 +6,6 @@ __pycache__/
 results/*.png
 results/pinnacle_clv_run.json
 results/diagnosis.json
+results/league_scan.json
+results/best_league.json
 /data/
