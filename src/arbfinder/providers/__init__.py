@@ -2,14 +2,19 @@
 from __future__ import annotations
 
 from arbfinder.providers.base import OddsProvider, ProviderError
+from arbfinder.providers.footballdata import FootballDataProvider
 from arbfinder.providers.mock import MockProvider
 from arbfinder.providers.theoddsapi import TheOddsApiProvider
 
-__all__ = ["OddsProvider", "ProviderError", "MockProvider", "TheOddsApiProvider", "get_provider"]
+__all__ = [
+    "OddsProvider", "ProviderError", "MockProvider", "TheOddsApiProvider",
+    "FootballDataProvider", "get_provider",
+]
 
 _PROVIDERS: dict[str, type[OddsProvider]] = {
     MockProvider.name: MockProvider,
     TheOddsApiProvider.name: TheOddsApiProvider,
+    FootballDataProvider.name: FootballDataProvider,
 }
 
 
