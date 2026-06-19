@@ -47,3 +47,26 @@ def plot_comparison(results: list[Any], metric: str = "avg_edge_pct",
     fig.savefig(out_path, dpi=130)
     plt.close(fig)
     return out_path
+
+
+def plot_bankroll(curves: dict[str, list[float]], start_capital: float = 100.0,
+                  out_path: str = "results/bankroll.png") -> str:
+    """Zeichnet die Bankroll-Kurve(n) der Diagnose (eine Linie je Einsatzregel)."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots(figsize=(9, 4.5))
+    for rule, curve in curves.items():
+        ax.plot(range(1, len(curve) + 1), curve, label=rule, linewidth=1.3)
+    ax.axhline(start_capital, color="grey", linestyle="--", alpha=0.6, label="Start")
+    ax.set_title("Bankroll-Kurve (chronologisch)")
+    ax.set_xlabel("Wett-Nr.")
+    ax.set_ylabel("Kapital (EUR)")
+    ax.grid(alpha=0.3)
+    ax.legend()
+    fig.tight_layout()
+    Path(out_path).parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path, dpi=130)
+    plt.close(fig)
+    return out_path

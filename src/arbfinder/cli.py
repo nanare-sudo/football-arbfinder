@@ -193,6 +193,27 @@ def _cmd_backfill(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_diagnose(args: argparse.Namespace) -> int:
+    from arbfinder.diagnostics import diagnose, format_report
+
+    report = diagnose(
+        args.data, strategy_name=args.strategy, start_capital=args.capital,
+        flat_pct=args.flat_pct, kelly_fraction=args.kelly_fraction, kelly_cap=args.kelly_cap,
+    )
+    print(format_report(report))
+    if args.out:
+        out = Path(args.out)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(json.dumps(report, indent=2))
+        print(f"\nReport -> {args.out}")
+    if args.plot:
+        from arbfinder import plotting
+        path = plotting.plot_bankroll(report["bankroll_curve"], start_capital=args.capital,
+                                      out_path=args.plot)
+        print(f"Bankroll-Plot -> {path}")
+    return 0
+
+
 # --------------------------------------------------------------------------- #
 # Parser
 # --------------------------------------------------------------------------- #
@@ -254,6 +275,21 @@ def build_parser() -> argparse.ArgumentParser:
     bf.add_argument("--max-credits", dest="max_credits", type=int, default=1000,
                     help="Obergrenze geschaetzte Credits (faengt viele Markets/Regions ab)")
     bf.set_defaults(func=_cmd_backfill)
+
+    dg = sub.add_parser("diagnose",
+                        help="Bestehenden Value-Lauf diagnostizieren (Bankroll + Stress-Checks)")
+    dg.add_argument("--data", required=True, help="JSONL mit settled Signalen (z.B. football-data)")
+    dg.add_argument("--strategy", default="value", choices=all_strategies())
+    dg.add_argument("--capital", type=float, default=100.0, help="Startkapital in EUR")
+    dg.add_argument("--flat-pct", dest="flat_pct", type=float, default=1.0,
+                    help="Flat-Einsatz in %% des Startkapitals")
+    dg.add_argument("--kelly-fraction", dest="kelly_fraction", type=float, default=0.25,
+                    help="Anteil der vollen Kelly-Groesse (z.B. 0.25 = 1/4 Kelly)")
+    dg.add_argument("--kelly-cap", dest="kelly_cap", type=float, default=0.1,
+                    help="Obergrenze fuer den Kelly-Anteil je Wette")
+    dg.add_argument("--out", default="results/diagnosis.json")
+    dg.add_argument("--plot", default=None, help="optional: Pfad fuer den Bankroll-Plot (matplotlib)")
+    dg.set_defaults(func=_cmd_diagnose)
 
     return p
 

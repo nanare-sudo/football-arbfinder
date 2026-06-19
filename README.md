@@ -263,6 +263,29 @@ Wetten (Einsatz je 100 → +3.0 %), Urteil **confirmed**. **Aber ehrlich einordn
   `run_validated`). Ein echter Holdout/Walk-Forward kaeme erst mit einer lernenden
   Strategie — bis dahin ist "confirmed" als **in-sample-positiv** zu lesen.
 
+### Signal oder Rauschen? `arbfinder diagnose`
+
+`diagnostics.py` prueft den bestehenden Lauf mit realistischem Bankroll-Management
+(100 EUR Startkapital, Konto als bindende Grenze, Ruin-Stopp) und drei
+Realitaets-Checks — **nie nur absolute PnL**:
+
+```bash
+arbfinder diagnose --data data/epl_3seasons.jsonl --plot results/bankroll.png
+```
+berichtet je Einsatzregel (Flat 1 % vs. 1/4-Kelly, compoundet) Endkapital, ROI
+auf den Umsatz, max. Drawdown, Trefferquote, Ruin; dazu (1) Preis-Abschlag
+0/1/2/3 %, (2) Konzentration nach Bookmaker & Saison, (3) Konzentration nach
+Quoten-Bereich.
+
+**Befund auf den 3 echten PL-Saisons (678 Wetten):** aus 100 EUR werden flat
+120.61 EUR (ROI +3.0 %) — aber bei **51.9 % Drawdown**, und ein **3 %-Abschlag**
+(realistische Slippage auf Schlussquoten) kippt es ins Minus. Der Gewinn haengt
+an **einer Saison** (2022/23 +51 €, 2023/24 **−39 €**) und an wenigen
+grosszuegigen Bookies; **62 % aller Wetten** sind extreme Aussenseiter (Quote
+>6.0), die in Summe **verlieren** (Devig-/Favorite-Longshot-Bias). **Fazit: die
++PnL ist mit hoher Wahrscheinlichkeit Artefakt/Rauschen, kein echter Edge — kein
+lernendes Modell bauen, der Edge scheitert schon an der Realitaet.**
+
 ## Leitplanken
 
 - **Nur erkennen & melden, nie automatisch setzen.** Es gibt keine
