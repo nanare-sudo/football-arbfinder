@@ -280,11 +280,15 @@ Quoten-Bereich.
 **Befund auf den 3 echten PL-Saisons (678 Wetten):** aus 100 EUR werden flat
 120.61 EUR (ROI +3.0 %) — aber bei **51.9 % Drawdown**, und ein **3 %-Abschlag**
 (realistische Slippage auf Schlussquoten) kippt es ins Minus. Der Gewinn haengt
-an **einer Saison** (2022/23 +51 €, 2023/24 **−39 €**) und an wenigen
-grosszuegigen Bookies; **62 % aller Wetten** sind extreme Aussenseiter (Quote
->6.0), die in Summe **verlieren** (Devig-/Favorite-Longshot-Bias). **Fazit: die
-+PnL ist mit hoher Wahrscheinlichkeit Artefakt/Rauschen, kein echter Edge — kein
-lernendes Modell bauen, der Edge scheitert schon an der Realitaet.**
+an **einer Saison** (2022/23 = **87 % der Gewinne** bei ROI +30.7 %, waehrend
+2023/24 mit **−39 € / ROI −19.7 %** verliert — der Edge **dreht das Vorzeichen**,
+ist also nicht persistent) und steckt zu **~69 % im Quotenband 3.5–6.0**,
+waehrend **62 % aller Wetten** extreme Aussenseiter (Quote >6.0) sind, die in
+Summe **verlieren** (Devig-/Favorite-Longshot-Bias). *(Anteile = Anteil an den
+Gesamtgewinnen, bewusst nicht am winzigen Netto — sonst explodieren sie ueber
+100 %.)* **Fazit: die +PnL ist mit hoher Wahrscheinlichkeit Artefakt/Rauschen,
+kein echter Edge — kein lernendes Modell bauen, der Edge scheitert schon an der
+Realitaet.**
 
 ## Leitplanken
 

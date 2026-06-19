@@ -41,7 +41,7 @@ _ODDS_BUCKETS = ("<2.0", "2.0-3.5", "3.5-6.0", ">6.0")
 
 
 def _season(dt: datetime) -> str:
-    """Fussball-Saison-Label aus einem Datum (Aug-Mai), z.B. '2023/24'."""
+    """Saison-Label aus einem Datum; Schnitt Anfang Juli (month>=7 -> neue Saison)."""
     y = dt.year
     return f"{y}/{str(y + 1)[2:]}" if dt.month >= 7 else f"{y - 1}/{str(y)[2:]}"
 
@@ -257,7 +257,7 @@ def concentration(placed: list[PlacedBet], key: Callable[[BetRecord], str]) -> d
         g["turnover"] += pb.stake
         g["n"] += 1
         g["wins"] += int(pb.record.won)
-    total = sum(g["pnl"] for g in groups.values())
+    total_gain = sum(g["pnl"] for g in groups.values() if g["pnl"] > 0)
     out: dict[str, dict] = {}
     for name, g in groups.items():
         out[name] = {
@@ -265,16 +265,20 @@ def concentration(placed: list[PlacedBet], key: Callable[[BetRecord], str]) -> d
             "roi_pct": round(g["pnl"] / g["turnover"] * 100.0, 3) if g["turnover"] > 0 else 0.0,
             "n": g["n"],
             "hit_rate_pct": round(g["wins"] / g["n"] * 100.0, 2) if g["n"] else 0.0,
-            "pnl_share_pct": round(g["pnl"] / total * 100.0, 1) if total > 0 else None,
+            # Anteil an den GESAMTGEWINNEN (nur positive Gruppen), stets in [0,100].
+            # Bewusst NICHT Anteil am NETTO-PnL: bei kleinem Netto aus grossen,
+            # gegenlaeufigen Gruppen explodieren Netto-Anteile (>100% / negativ) und
+            # taeuschten faelschlich "eine Quelle traegt alles" vor.
+            "gain_share_pct": round(max(0.0, g["pnl"]) / total_gain * 100.0, 1) if total_gain > 0 else 0.0,
         }
     return out
 
 
 def _max_share(groups: dict[str, dict]) -> tuple[str | None, float | None]:
-    """Groesster PnL-Anteil einer einzelnen Gruppe (zur Konzentrations-Warnung)."""
+    """Groesster Gewinn-Anteil einer einzelnen Gruppe (zur Konzentrations-Warnung)."""
     best_name, best_share = None, None
     for name, g in groups.items():
-        s = g.get("pnl_share_pct")
+        s = g.get("gain_share_pct")
         if s is not None and (best_share is None or s > best_share):
             best_name, best_share = name, s
     return best_name, best_share
@@ -348,20 +352,31 @@ def _assess(report: dict[str, Any]) -> dict[str, Any]:
         reasons.append(f"Preis-Abschlag: kippt bei {kip:.0f}% ins Minus -> fragil "
                        f"(2-3% Slippage auf Schlussquoten sind realistisch).")
 
-    # 2) Konzentration Bookie & Saison (flat). >60% PnL aus EINER Quelle = Artefakt.
+    # 2) Konzentration & Stabilitaet (flat). Anteile = Anteil an den GESAMTGEWINNEN
+    #    ([0,100], NICHT am Netto). Plus: dreht der Edge ueber Saisons das Vorzeichen?
     bk, bk_share = _max_share(report["concentration_by_bookie"]["flat"])
     se, se_share = _max_share(report["concentration_by_season"]["flat"])
-    concentrated = (bk_share is not None and bk_share > 60.0) or (se_share is not None and se_share > 60.0)
-    if bk_share is not None:
-        reasons.append(f"Konzentration: groesster Bookie-Anteil {bk}={bk_share:.0f}% des PnL; "
-                       f"groesste Saison {se}={se_share:.0f}%."
-                       + (" -> Artefakt-Verdacht (eine Quelle traegt fast alles)." if concentrated else ""))
+    seasons = report["concentration_by_season"]["flat"]
+    overall_roi = report["rules"]["flat"]["roi_pct"]
+    season_unstable = overall_roi > 0 and any(g["roi_pct"] < 0 for g in seasons.values())
+    dominated = (bk_share is not None and bk_share > 60.0) or (se_share is not None and se_share > 60.0)
+    concentrated = dominated or season_unstable
+    reasons.append(
+        f"Konzentration: groesster Bookie-Gewinnanteil {bk}={bk_share:.0f}%; "
+        f"groesster Saison-Gewinnanteil {se}={se_share:.0f}%."
+        + (" -> eine Quelle traegt fast alle Gewinne." if dominated else "")
+    )
+    if season_unstable:
+        worst = min(seasons.items(), key=lambda kv: kv[1]["roi_pct"])
+        reasons.append(f"Stabilitaet: Edge dreht ueber Saisons das Vorzeichen "
+                       f"(z.B. {worst[0]} ROI {worst[1]['roi_pct']:+.1f}%) -> nicht persistent (Artefakt-Verdacht).")
 
-    # 3) Quoten-Bias / Devig: zwei Symptome — (a) Gewinn fast nur aus Aussenseitern,
-    #    oder (b) das Modell setzt massenhaft auf extreme Aussenseiter, die VERLIEREN
-    #    (klassische Devig-/Favorite-Longshot-Verzerrung).
+    # 3) Quoten-Bias / Devig: (a) Gewinne fast nur aus Aussenseitern, ODER (b) das
+    #    Modell setzt massenhaft auf extreme Aussenseiter, die VERLIEREN
+    #    (klassische Devig-/Favorite-Longshot-Verzerrung). gain_share ist >=0, sodass
+    #    ein verlierender Bucket einen gewinnenden NICHT wegkuerzt.
     buckets = report["concentration_by_odds_bucket"]["flat"]
-    longshot_gain_share = sum((buckets.get(b, {}).get("pnl_share_pct") or 0.0) for b in ("3.5-6.0", ">6.0"))
+    longshot_gain_share = sum((buckets.get(b, {}).get("gain_share_pct") or 0.0) for b in ("3.5-6.0", ">6.0"))
     extreme = buckets.get(">6.0", {})
     total_n = report["n_bets"] or 1
     extreme_bet_share = (extreme.get("n", 0) / total_n) * 100.0
@@ -412,18 +427,18 @@ def format_report(report: dict[str, Any]) -> str:
         cells = "  ".join(f"{r['haircut_pct']:.0f}%:{r['end_capital']:.1f}" for r in report["haircut_sweep"][rule])
         L.append(f"  {rule:5}  {cells}")
     L.append("")
-    L.append("Konzentration nach Saison (flat) [PnL | Anteil | n | ROI]:")
+    L.append("Konzentration nach Saison (flat) [PnL | Gewinn-Anteil | n | ROI]:")
     for name, g in sorted(report["concentration_by_season"]["flat"].items()):
-        L.append(f"  {name:8} {g['pnl']:+8.2f} | {g['pnl_share_pct']}% | n={g['n']} | ROI {g['roi_pct']:+.1f}%")
-    L.append("Konzentration nach Bookmaker (flat, Top 5):")
+        L.append(f"  {name:8} {g['pnl']:+8.2f} | {g['gain_share_pct']:5.1f}% | n={g['n']} | ROI {g['roi_pct']:+.1f}%")
+    L.append("Konzentration nach Bookmaker (flat, Top 5) [PnL | Gewinn-Anteil | n | ROI]:")
     top = sorted(report["concentration_by_bookie"]["flat"].items(), key=lambda kv: -(kv[1]["pnl"]))[:5]
     for name, g in top:
-        L.append(f"  {name:8} {g['pnl']:+8.2f} | {g['pnl_share_pct']}% | n={g['n']} | ROI {g['roi_pct']:+.1f}%")
-    L.append("Konzentration nach Quoten-Bucket (flat) [PnL | Anteil | n | ROI]:")
+        L.append(f"  {name:8} {g['pnl']:+8.2f} | {g['gain_share_pct']:5.1f}% | n={g['n']} | ROI {g['roi_pct']:+.1f}%")
+    L.append("Konzentration nach Quoten-Bucket (flat) [PnL | Gewinn-Anteil | n | ROI]:")
     for name in _ODDS_BUCKETS:
         g = report["concentration_by_odds_bucket"]["flat"].get(name)
         if g:
-            L.append(f"  {name:8} {g['pnl']:+8.2f} | {g['pnl_share_pct']}% | n={g['n']} | ROI {g['roi_pct']:+.1f}%")
+            L.append(f"  {name:8} {g['pnl']:+8.2f} | {g['gain_share_pct']:5.1f}% | n={g['n']} | ROI {g['roi_pct']:+.1f}%")
     L.append("")
     a = report["assessment"]
     L.append("--- Checks ---")

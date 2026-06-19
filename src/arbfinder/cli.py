@@ -287,7 +287,7 @@ def build_parser() -> argparse.ArgumentParser:
                     help="Anteil der vollen Kelly-Groesse (z.B. 0.25 = 1/4 Kelly)")
     dg.add_argument("--kelly-cap", dest="kelly_cap", type=float, default=0.1,
                     help="Obergrenze fuer den Kelly-Anteil je Wette")
-    dg.add_argument("--out", default="results/diagnosis.json")
+    dg.add_argument("--out", default=None, help="optional: Pfad fuer den JSON-Report")
     dg.add_argument("--plot", default=None, help="optional: Pfad fuer den Bankroll-Plot (matplotlib)")
     dg.set_defaults(func=_cmd_diagnose)
 
