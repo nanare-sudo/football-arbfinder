@@ -17,5 +17,5 @@ def test_unvollstaendig_wird_verworfen():
 
 def test_backtest_laeuft():
     res = backtest.run("arbitrage", "fixtures/recorded_odds.jsonl")
-    assert res.events == 3
-    assert res.skipped_incomplete == 1
+    assert res.events == 5                # 3 Arb-Events + 2 Value-Events (v1, v2)
+    assert res.skipped_incomplete == 1    # nur e2 ist unvollstaendig; v1/v2 sind komplett

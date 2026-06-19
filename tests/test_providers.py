@@ -15,7 +15,7 @@ from arbfinder.providers.base import ProviderError
 # --------------------------------------------------------------------------- #
 def test_mock_liest_fixture_und_liefert_events():
     events = MockProvider("fixtures/recorded_odds.jsonl").fetch_events()
-    assert len(events) == 3
+    assert len(events) == 5              # 3 Arb-Events (e1-e3) + 2 Value-Events (v1, v2)
     assert all(isinstance(e, Event) for e in events)
     e1 = next(e for e in events if e.event_id == "e1")
     assert e1.home == "Man City" and e1.away == "Arsenal"

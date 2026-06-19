@@ -24,11 +24,12 @@ class _ListProvider(OddsProvider):
 
 def test_detect_gegen_mock_fixture():
     res = detect(MockProvider("fixtures/recorded_odds.jsonl"))
-    assert res.events_in == 3
-    assert res.events_merged == 3            # alle verschiedene Events
+    assert res.events_in == 5                # 3 Arb-Events + 2 Value-Events (v1, v2)
+    assert res.events_merged == 5            # alle verschiedene Events
     # e2 ist unvollstaendig (nur 2/3 Ausgaenge) -> gezaehlt, nicht still weg.
     assert res.skipped_incomplete == 1
-    assert len(res.signals) == 2             # e1 und e3 sind echte Arbs
+    # v1/v2 sind KEINE Arbitrage -> die Arbitrage-Strategie meldet nur e1 und e3.
+    assert len(res.signals) == 2
     assert all(s.edge_pct > 0 for s in res.signals)
 
 
