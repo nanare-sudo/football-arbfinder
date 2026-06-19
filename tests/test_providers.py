@@ -194,6 +194,52 @@ def test_theoddsapi_historical_leakt_keinen_key(monkeypatch):
     assert "SECRET123" not in str(ei.value)
 
 
+def test_theoddsapi_historical_blanke_liste_ohne_huelle(monkeypatch):
+    import requests
+
+    monkeypatch.setattr(requests, "get", lambda *a, **k: _Resp(_SAMPLE))   # bare Liste, keine Huelle
+    prov = TheOddsApiProvider(sport="soccer_epl", api_key="dummy")
+    events, snap_ts = prov.fetch_historical("2026-08-15T12:00:00Z")
+    assert events and events[0].home == "Manchester City"
+    assert snap_ts is None                                                  # keine timestamp-Angabe
+
+
+def test_theoddsapi_historical_huelle_ohne_timestamp(monkeypatch):
+    import requests
+
+    payload = {"data": _SAMPLE}                                             # timestamp fehlt
+    monkeypatch.setattr(requests, "get", lambda *a, **k: _Resp(payload))
+    prov = TheOddsApiProvider(sport="soccer_epl", api_key="dummy")
+    events, snap_ts = prov.fetch_historical("2026-08-15T12:00:00Z")
+    assert events and snap_ts is None                                       # kein Crash
+
+
+def test_theoddsapi_historical_nichtlisten_data_kein_crash(monkeypatch):
+    import requests
+
+    payload = {"data": {"kein": "event"}, "timestamp": "2026-08-15T12:00:00Z"}
+    monkeypatch.setattr(requests, "get", lambda *a, **k: _Resp(payload))
+    prov = TheOddsApiProvider(sport="soccer_epl", api_key="dummy")
+    events, snap_ts = prov.fetch_historical("2026-08-15T12:00:00Z")
+    assert events == []                                                     # defensiv -> keine Events, kein TypeError
+
+
+def test_theoddsapi_ungueltiges_json_wird_providererror(monkeypatch):
+    import requests
+
+    class _BadJson:
+        ok, status_code, headers = True, 200, {}
+
+        def json(self):
+            raise ValueError("Expecting value")
+
+    monkeypatch.setattr(requests, "get", lambda *a, **k: _BadJson())
+    prov = TheOddsApiProvider(sport="soccer_epl", api_key="SECRET123")
+    with pytest.raises(ProviderError) as ei:
+        prov.fetch_events()
+    assert "SECRET123" not in str(ei.value)                                 # ProviderError, kein roher Decode-Fehler
+
+
 def test_theoddsapi_http_fehler_leakt_keinen_key(monkeypatch):
     import requests
 

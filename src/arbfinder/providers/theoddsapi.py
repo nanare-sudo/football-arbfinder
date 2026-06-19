@@ -53,6 +53,15 @@ _BASE_URL = "https://api.the-odds-api.com/v4"
 _DRAW_SPORTS = ("soccer", "football_aussie", "rugby", "hockey", "cricket")
 
 
+def _as_event_list(raw: Any) -> list:
+    """Coerced die 'data'-Nutzlast defensiv auf eine Event-Liste (kein TypeError)."""
+    if isinstance(raw, list):
+        return raw
+    if isinstance(raw, dict):
+        return [raw]          # einzelnes Event -> parse_response prueft Felder
+    return []                 # None/String/sonstiges -> nichts verwertbar
+
+
 def _to_iso_z(date: str | datetime) -> str:
     """Formatiert ein Datum als ISO-8601 mit 'Z' (UTC), wie es der API erwartet."""
     if isinstance(date, datetime):
@@ -209,7 +218,10 @@ class TheOddsApiProvider(OddsProvider):
         }
         if not resp.ok:
             raise ProviderError(f"Odds-API HTTP {resp.status_code}")   # KEINE URL/kein Key
-        return resp.json()
+        try:
+            return resp.json()
+        except ValueError:   # nicht-JSON/abgeschnittene Antwort; 'from None' -> kein Body-Leak
+            raise ProviderError("Odds-API: ungueltige JSON-Antwort") from None
 
     def fetch_events(self) -> list[Event]:
         """Holt aktuelle Live-Quoten. Erfordert ODDS_API_KEY und ``requests``."""
@@ -245,10 +257,10 @@ class TheOddsApiProvider(OddsProvider):
             },
         )
         if isinstance(payload, dict):                      # historische Huelle
-            events = parse_response(payload.get("data", []) or [])
+            events = parse_response(_as_event_list(payload.get("data")))
             ts = payload.get("timestamp")
             snap_ts = parse_datetime(ts) if ts else None
         else:                                              # Fallback: blanke Liste
-            events = parse_response(payload)
+            events = parse_response(_as_event_list(payload))
             snap_ts = None
         return events, snap_ts
