@@ -40,13 +40,19 @@ from arbfinder.providers.base import OddsProvider
 logger = logging.getLogger("arbfinder.recorder")
 
 
+def _iso_utc(dt: datetime) -> str:
+    """ISO-8601 mit explizitem UTC-Offset (naive Eingaben werden als UTC gelesen)."""
+    aware = dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+    return aware.astimezone(timezone.utc).isoformat()
+
+
 def _event_rows(event: Event, queried_at: datetime) -> list[dict[str, Any]]:
     """Serialisiert ein Event pro Markt ins JSONL-Fixture-Format."""
     rows: list[dict[str, Any]] = []
     for m in event.markets:
         rows.append({
-            "ts": queried_at.isoformat(),                  # Abfragezeit
-            "commence_time": event.start_time.isoformat(),  # echter Anstoss
+            "ts": _iso_utc(queried_at),                    # Abfragezeit (immer UTC-aware)
+            "commence_time": _iso_utc(event.start_time),   # echter Anstoss (immer UTC-aware)
             "event_id": event.event_id,
             "event_name": event.name,
             "sport": event.sport,
@@ -86,26 +92,43 @@ class Recorder:
             except Exception as exc:  # noqa: BLE001
                 logger.warning("Event uebersprungen (Serialisierung): %s", exc)
 
-        self._append(rows)
+        written = self._append(rows)
 
         quota = getattr(self.provider, "last_quota", None) or None
         if quota and str(quota.get("remaining")) == "0":
-            logger.warning("API-Kontingent erschoepft (remaining=0) — Recorder pausiert sinnvoll.")
+            logger.warning(
+                "API-Kontingent erschoepft (remaining=0) — weitere Abfragen werden bis zum "
+                "Kontingent-Reset abgelehnt (KEIN automatischer Stopp; ggf. Recorder beenden)."
+            )
         logger.info(
             "Aufgezeichnet: %d Zeilen aus %d Events%s",
-            len(rows), len(events),
+            written, len(events),
             f" | API-Kontingent {quota}" if quota else "",
         )
-        return len(rows)
+        return written
 
-    def _append(self, rows: list[dict[str, Any]]) -> None:
+    def _append(self, rows: list[dict[str, Any]]) -> int:
+        """Haengt Zeilen an; gibt die Zahl tatsaechlich geschriebener Zeilen zurueck.
+
+        Eine einzelne nicht serialisierbare Zeile wird geloggt und uebersprungen
+        (skip-and-log), statt den ganzen Tick abzubrechen. ``ensure_ascii=False``
+        haelt Teamnamen (z.B. 'Bayern München') im Klartext lesbar.
+        """
         if not rows:
-            return
+            return 0
         path = Path(self.out_path)
         path.parent.mkdir(parents=True, exist_ok=True)
+        written = 0
         with path.open("a", encoding="utf-8") as fh:      # APPEND-ONLY
             for r in rows:
-                fh.write(json.dumps(r) + "\n")
+                try:
+                    line = json.dumps(r, ensure_ascii=False)
+                except (TypeError, ValueError) as exc:
+                    logger.warning("Zeile uebersprungen (nicht serialisierbar): %s", exc)
+                    continue
+                fh.write(line + "\n")
+                written += 1
+        return written
 
     def start(self, interval_minutes: float) -> None:  # pragma: no cover - blockierend
         """Startet die periodische Aufzeichnung (blockiert bis Ctrl-C)."""

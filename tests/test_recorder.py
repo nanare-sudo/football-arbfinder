@@ -75,4 +75,45 @@ def test_recorder_loggt_api_kontingent(tmp_path, caplog):
     prov = _FakeProvider([_event()], last_quota={"remaining": "123", "used": "7"})
     with caplog.at_level(logging.INFO, logger="arbfinder.recorder"):
         Recorder(prov, out).tick(now=_T1)
-    assert any("123" in r.message for r in caplog.records)         # Verbrauch geloggt
+    assert any("API-Kontingent" in r.message and "123" in r.message for r in caplog.records)
+
+
+def test_recorder_warnt_bei_erschoepftem_kontingent(tmp_path, caplog):
+    out = tmp_path / "rec.jsonl"
+    prov = _FakeProvider([_event()], last_quota={"remaining": "0", "used": "500"})
+    with caplog.at_level(logging.WARNING, logger="arbfinder.recorder"):
+        Recorder(prov, out).tick(now=_T1)
+    assert any("erschoepft" in r.message for r in caplog.records)   # eigene WARNING-Meldung
+
+
+def test_recorder_ueberspringt_einzelnes_kaputtes_event(tmp_path, caplog, monkeypatch):
+    import arbfinder.recorder as rec_mod
+
+    good = _event()
+    bad = Event(event_id="bad", home="X", away="Y",
+                start_time=datetime(2026, 8, 15, 16, 0, tzinfo=timezone.utc),
+                markets=[Market("h2h", {"X": {"A": 2.0}, "Y": {"A": 2.0}}, 2)])
+    orig = rec_mod._event_rows
+
+    def fake(ev, now):
+        if ev.event_id == "bad":
+            raise ValueError("kaputt")
+        return orig(ev, now)
+
+    monkeypatch.setattr(rec_mod, "_event_rows", fake)
+    out = tmp_path / "rec.jsonl"
+    with caplog.at_level(logging.WARNING, logger="arbfinder.recorder"):
+        n = Recorder(_FakeProvider([good, bad]), out).tick(now=_T1)
+    assert n == 1                                                   # nur das gute Event
+    assert [r["event_id"] for r in read_jsonl(out)] == ["e1"]
+    assert any("Serialisierung" in r.message for r in caplog.records)
+
+
+def test_recorder_schreibt_unicode_verbatim(tmp_path):
+    ev = Event(event_id="u", home="Bayern München", away="Köln",
+               start_time=datetime(2026, 8, 15, 15, 0, tzinfo=timezone.utc),
+               markets=[Market("h2h", {"Bayern München": {"A": 1.8}, "Köln": {"A": 4.0}}, 2)])
+    out = tmp_path / "u.jsonl"
+    Recorder(_FakeProvider([ev]), out).tick(now=_T1)
+    assert "Bayern München" in out.read_text(encoding="utf-8")      # nicht \uXXXX-escaped
+    assert read_jsonl(out)[0]["event_name"] == "Bayern München v Köln"
