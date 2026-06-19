@@ -65,7 +65,18 @@ def _print_scan(res: DetectionResult) -> None:
 
 
 def _compare_and_warn(old: dict[str, Any], new: dict[str, Any]) -> None:
-    """Vergleicht mit dem letzten Lauf und warnt vor aufgeweichtem Schutz."""
+    """Vergleicht mit dem letzten Lauf (NUR gleiche Strategie) und warnt vor
+    aufgeweichtem Schutz."""
+
+    # Strategien-uebergreifend NICHT vergleichen: die Metriken bedeuten
+    # Verschiedenes (Arbitrage = garantierter Gewinn; Value = erwarteter Vorteil
+    # MIT Risiko). Ein Zahlenvergleich waere irrefuehrend.
+    if old.get("strategy") != new.get("strategy"):
+        print(
+            f"\n(Kein Vergleich: letzter Lauf war Strategie '{old.get('strategy')}', "
+            f"dieser ist '{new.get('strategy')}' — Metriken nicht vergleichbar.)"
+        )
+        return
 
     def delta(key: str) -> str:
         o, n = old.get(key), new.get(key)

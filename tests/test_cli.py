@@ -42,7 +42,18 @@ def test_compare_and_warn_meldet_aufgeweichten_schutz(capsys):
 
 
 def test_compare_keine_warnung_bei_echtem_fortschritt(capsys):
-    old = {"signals": 2, "avg_edge_pct": 2.5, "skipped_incomplete": 1, "realized_pnl": 10.0}
-    new = {"signals": 3, "avg_edge_pct": 2.6, "skipped_incomplete": 1, "realized_pnl": 12.0}
+    old = {"strategy": "arbitrage", "signals": 2, "avg_edge_pct": 2.5, "skipped_incomplete": 1, "realized_pnl": 10.0}
+    new = {"strategy": "arbitrage", "signals": 3, "avg_edge_pct": 2.6, "skipped_incomplete": 1, "realized_pnl": 12.0}
     cli._compare_and_warn(old, new)
     assert "WARNUNG" not in capsys.readouterr().out
+
+
+def test_compare_ueberspringt_strategiewechsel(capsys):
+    # Value-Lauf darf NICHT gegen Arbitrage-Lauf verglichen werden.
+    old = {"strategy": "arbitrage", "signals": 2, "skipped_incomplete": 1}
+    new = {"strategy": "value", "signals": 8, "skipped_incomplete": 1}
+    cli._compare_and_warn(old, new)
+    out = capsys.readouterr().out
+    assert "Kein Vergleich" in out
+    assert "Vergleich zum letzten Lauf" not in out   # kein irrefuehrender Zahlenvergleich
+    assert "WARNUNG" not in out                       # und kein Fehlalarm
