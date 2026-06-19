@@ -8,6 +8,7 @@ dependencies = []
 dev = ["pytest>=8.0"]
 plot = ["matplotlib>=3.7"]
 fuzzy = ["rapidfuzz>=3.0"]
+live = ["requests>=2.31"]            # nur fuer den echten Odds-API-Provider noetig
 
 [build-system]
 requires = ["setuptools>=68"]
