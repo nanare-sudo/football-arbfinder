@@ -5,5 +5,14 @@
   "avg_edge_pct": 2.583,
   "skipped_incomplete": 1,
   "realized_pnl": 51.65,
-  "n_with_result": 2
+  "n_with_result": 2,
+  "verdict": {
+    "status": "confirmed",
+    "reason": "mathematische Tatsache, kein Overfitting-Risiko",
+    "in_sample_edge": 2.583,
+    "out_of_sample_edge": null,
+    "n_trials": 1,
+    "deflated_edge": null,
+    "details": {}
+  }
 }

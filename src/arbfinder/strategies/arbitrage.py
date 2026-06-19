@@ -17,6 +17,9 @@ from arbfinder.strategies.registry import register
 @register
 class ArbitrageStrategy(Strategy):
     name = "arbitrage"
+    # Reine Arbitrage: Marge < 1 ist eine mathematische Tatsache, kein
+    # Overfitting -> keine Out-of-Sample-Validierung noetig (siehe validation.py).
+    requires_validation = False
 
     def __init__(self, min_profit_pct: float = 0.0, stake: float = 1000.0) -> None:
         self.min_profit_pct = min_profit_pct

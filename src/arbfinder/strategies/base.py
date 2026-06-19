@@ -26,6 +26,11 @@ class Signal:
 class Strategy(ABC):
     name: str = "base"
 
+    # Braucht diese Strategie eine Out-of-Sample-Validierung (validation.judge)?
+    # Praediktive Strategien (Value Betting, ...) -> True (Overfitting moeglich).
+    # Reine Arbitrage ist eine mathematische Tatsache -> Unterklasse setzt False.
+    requires_validation: bool = True
+
     @abstractmethod
     def evaluate(self, market_snapshot: dict[str, Any]) -> list[Signal]:
         """Bekommt EIN normalisiertes Event (mit Quoten je Bookie) -> Signale."""

@@ -31,6 +31,7 @@ from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Any
 from arbfinder.strategies import get
+from arbfinder.validation import Verdict, judge
 
 
 @dataclass
@@ -104,6 +105,36 @@ def run(strategy_name: str, snapshots_path: str | Path, **kwargs) -> BacktestRes
     )
 
 
+def make_verdict(
+    strategy_name: str,
+    result: BacktestResult,
+    *,
+    n_trials: int = 1,
+    out_of_sample_edge: float | None = None,
+    **judge_kwargs: Any,
+) -> Verdict:
+    """Faellt das validation.judge-Urteil fuer einen Backtest.
+
+    Reine Arbitrage (``requires_validation=False``) ist eine mathematische
+    Tatsache -> bei positivem in-sample Edge "confirmed", sonst "rejected", OHNE
+    Out-of-Sample-Pruefung. Praediktive Strategien durchlaufen die dreistufige
+    Pruefung; fehlt OOS-Evidenz, lautet das Urteil "parked" (NICHT verworfen).
+
+    ``in_sample_edge`` ist der durchschnittliche behauptete Vorteil
+    (``avg_edge_pct``); ``n_trials`` zaehlt getestete Varianten (Deflationierung,
+    nur informativ).
+    """
+    strat = get(strategy_name)
+    requires_validation = getattr(strat, "requires_validation", True)
+    return judge(
+        in_sample_edge=result.avg_edge_pct,
+        out_of_sample_edge=out_of_sample_edge,
+        n_trials=n_trials,
+        requires_validation=requires_validation,
+        **judge_kwargs,
+    )
+
+
 def main(argv: list[str] | None = None) -> None:
     import argparse
     p = argparse.ArgumentParser(description="Backtest einer Strategie")
@@ -113,9 +144,14 @@ def main(argv: list[str] | None = None) -> None:
     args = p.parse_args(argv)
 
     res = run(args.strategy, args.data)
+    verdict = make_verdict(args.strategy, res)
+
+    out = res.to_dict()                 # Metriken bleiben top-level (plotting!)
+    out["verdict"] = verdict.to_dict()  # Urteil daneben mit reingeschrieben
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
-    Path(args.out).write_text(json.dumps(res.to_dict(), indent=2))
-    print(json.dumps(res.to_dict(), indent=2))
+    Path(args.out).write_text(json.dumps(out, indent=2))
+    print(json.dumps(out, indent=2))
+    print(f"\nUrteil ({args.strategy}): {verdict.status.upper()} — {verdict.reason}")
 
 
 if __name__ == "__main__":
