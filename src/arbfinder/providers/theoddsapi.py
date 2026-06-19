@@ -32,6 +32,7 @@ Dokumentierte Antwortstruktur (v4 /sports/{sport}/odds):
 """
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any
 import logging
 import os
@@ -50,6 +51,14 @@ _BASE_URL = "https://api.the-odds-api.com/v4"
 
 # Sportarten mit moeglichem Unentschieden -> 3-Wege h2h. Sonst 2-Wege.
 _DRAW_SPORTS = ("soccer", "football_aussie", "rugby", "hockey", "cricket")
+
+
+def _to_iso_z(date: str | datetime) -> str:
+    """Formatiert ein Datum als ISO-8601 mit 'Z' (UTC), wie es der API erwartet."""
+    if isinstance(date, datetime):
+        d = date if date.tzinfo else date.replace(tzinfo=timezone.utc)
+        return d.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return str(date)
 
 
 def _fmt_point(point: object) -> str:
@@ -169,8 +178,12 @@ class TheOddsApiProvider(OddsProvider):
         # Zuletzt gemeldeter API-Kontingent-Stand (aus den Antwort-Headern).
         self.last_quota: dict[str, str | None] = {}
 
-    def fetch_events(self) -> list[Event]:
-        """Holt Live-Quoten. Erfordert ODDS_API_KEY und installiertes ``requests``."""
+    def _http_get(self, url: str, params: dict[str, Any]) -> Any:
+        """GET mit Key-Injektion, Redaction (kein Key-Leak) und Kontingent-Erfassung.
+
+        Wird von ``fetch_events`` UND ``fetch_historical`` genutzt, damit der
+        Redaction-Guard ueberall gleich greift.
+        """
         if not self.api_key:
             raise ProviderError(
                 "Kein API-Key. Setze ODDS_API_KEY (Umgebungsvariable) oder uebergib "
@@ -182,26 +195,60 @@ class TheOddsApiProvider(OddsProvider):
             raise ProviderError(
                 "Paket 'requests' fehlt. Installiere mit: pip install arbfinder[live]"
             ) from exc
-
-        url = f"{self.base_url}/sports/{self.sport}/odds"
-        params = {
-            "apiKey": self.api_key,
-            "regions": self.regions,
-            "markets": self.markets,
-            "oddsFormat": self.odds_format,
-        }
         try:
-            resp = requests.get(url, params=params, timeout=15)
+            resp = requests.get(url, params={"apiKey": self.api_key, **params}, timeout=15)
         except requests.exceptions.RequestException as exc:
-            # WICHTIG: 'from None' + nur Typname. Der API-Key steckt als Query in
-            # der URL; requests-Exceptions enthalten die URL -> der Key darf NICHT
-            # ueber die Exception in Logs/Tracebacks gelangen (Leitplanke).
+            # 'from None' + nur Typname: der API-Key steckt als Query in der URL;
+            # requests-Exceptions enthalten die URL -> kein Leak in Logs/Tracebacks.
             raise ProviderError(f"Odds-API nicht erreichbar: {type(exc).__name__}") from None
-        # Kontingent-Header festhalten (auch bei Fehlern nuetzlich).
+        # Kontingent festhalten. 'last' = Kosten des letzten Calls (historisch = 10x).
         self.last_quota = {
             "remaining": resp.headers.get("x-requests-remaining"),
             "used": resp.headers.get("x-requests-used"),
+            "last": resp.headers.get("x-requests-last"),
         }
         if not resp.ok:
             raise ProviderError(f"Odds-API HTTP {resp.status_code}")   # KEINE URL/kein Key
-        return parse_response(resp.json())
+        return resp.json()
+
+    def fetch_events(self) -> list[Event]:
+        """Holt aktuelle Live-Quoten. Erfordert ODDS_API_KEY und ``requests``."""
+        payload = self._http_get(
+            f"{self.base_url}/sports/{self.sport}/odds",
+            {"regions": self.regions, "markets": self.markets, "oddsFormat": self.odds_format},
+        )
+        return parse_response(payload)
+
+    def fetch_historical(self, date: str | datetime) -> tuple[list[Event], datetime | None]:
+        """Holt einen HISTORISCHEN Quoten-Snapshot zum Zeitpunkt ``date``.
+
+        Endpoint: GET /v4/historical/sports/{sport}/odds&date=<ISO8601>. Die
+        Antwort umhuellt die normale Odds-Liste: {timestamp, previous_timestamp,
+        next_timestamp, data:[...]}. ``data`` hat dasselbe Schema wie der normale
+        Endpoint -> derselbe ``parse_response``. Der API liefert den NAECHST-
+        GELEGENEN verfuegbaren Snapshot; dessen echte Zeit steckt in ``timestamp``
+        und wird zurueckgegeben (fuer das 'ts'-Feld der aufgezeichneten Zeile).
+
+        KOSTEN: der historische Endpoint kostet das ~10-fache an Credits pro Call.
+
+        Returns:
+            (events, snapshot_ts) — snapshot_ts ist die tatsaechliche Snapshot-Zeit
+            laut API (oder None, falls nicht geliefert).
+        """
+        payload = self._http_get(
+            f"{self.base_url}/historical/sports/{self.sport}/odds",
+            {
+                "regions": self.regions,
+                "markets": self.markets,
+                "oddsFormat": self.odds_format,
+                "date": _to_iso_z(date),
+            },
+        )
+        if isinstance(payload, dict):                      # historische Huelle
+            events = parse_response(payload.get("data", []) or [])
+            ts = payload.get("timestamp")
+            snap_ts = parse_datetime(ts) if ts else None
+        else:                                              # Fallback: blanke Liste
+            events = parse_response(payload)
+            snap_ts = None
+        return events, snap_ts

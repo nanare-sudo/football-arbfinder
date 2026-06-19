@@ -152,12 +152,46 @@ class _Resp:
 def test_theoddsapi_fetch_gemockt_erfasst_kontingent(monkeypatch):
     import requests
 
-    headers = {"x-requests-remaining": "123", "x-requests-used": "7"}
+    headers = {"x-requests-remaining": "123", "x-requests-used": "7", "x-requests-last": "1"}
     monkeypatch.setattr(requests, "get", lambda *a, **k: _Resp(_SAMPLE, headers))
     prov = TheOddsApiProvider(sport="soccer_epl", api_key="dummy")
     events = prov.fetch_events()
     assert events and events[0].home == "Manchester City"
-    assert prov.last_quota == {"remaining": "123", "used": "7"}   # Verbrauch erfasst
+    assert prov.last_quota == {"remaining": "123", "used": "7", "last": "1"}
+
+
+def test_theoddsapi_historical_setzt_date_und_liefert_snapshot_ts(monkeypatch):
+    import requests
+
+    captured = {}
+
+    def fake_get(url, params=None, timeout=None):
+        captured["url"] = url
+        captured["params"] = params
+        # historische Antwort umhuellt die Odds-Liste:
+        payload = {"timestamp": "2026-08-15T12:30:00Z", "previous_timestamp": None,
+                   "next_timestamp": None, "data": _SAMPLE}
+        return _Resp(payload, {"x-requests-last": "10", "x-requests-remaining": "490"})
+
+    monkeypatch.setattr(requests, "get", fake_get)
+    prov = TheOddsApiProvider(sport="soccer_epl", api_key="dummy")
+    events, snap_ts = prov.fetch_historical(datetime(2026, 8, 15, 12, 0, tzinfo=timezone.utc))
+
+    assert "/historical/sports/soccer_epl/odds" in captured["url"]
+    assert captured["params"]["date"] == "2026-08-15T12:00:00Z"     # date-Parameter gesetzt
+    assert events and events[0].home == "Manchester City"           # Parser wiederverwendet
+    assert snap_ts == datetime(2026, 8, 15, 12, 30, tzinfo=timezone.utc)  # echte Snapshot-Zeit
+    assert prov.last_quota["last"] == "10"                          # 10x-Kosten erfasst
+
+
+def test_theoddsapi_historical_leakt_keinen_key(monkeypatch):
+    import requests
+
+    monkeypatch.setattr(requests, "get", lambda *a, **k: _Resp({}, ok=False, status_code=401))
+    prov = TheOddsApiProvider(sport="soccer_epl", api_key="SECRET123")
+    with pytest.raises(ProviderError) as ei:
+        prov.fetch_historical("2026-08-15T12:00:00Z")
+    assert "SECRET123" not in str(ei.value)
 
 
 def test_theoddsapi_http_fehler_leakt_keinen_key(monkeypatch):
