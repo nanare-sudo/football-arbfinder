@@ -35,8 +35,9 @@ def test_backtest_schreibt_und_meldet_urteil(tmp_path, capsys):
 
 
 def test_compare_and_warn_meldet_aufgeweichten_schutz(capsys):
-    old = {"signals": 2, "avg_edge_pct": 2.5, "skipped_incomplete": 3, "realized_pnl": 10.0}
-    new = {"signals": 5, "avg_edge_pct": 2.5, "skipped_incomplete": 1, "realized_pnl": 10.0}
+    # gleiche Strategie (realer Pfad) -> Vergleich laeuft und warnt.
+    old = {"strategy": "arbitrage", "signals": 2, "avg_edge_pct": 2.5, "skipped_incomplete": 3, "realized_pnl": 10.0}
+    new = {"strategy": "arbitrage", "signals": 5, "avg_edge_pct": 2.5, "skipped_incomplete": 1, "realized_pnl": 10.0}
     cli._compare_and_warn(old, new)
     assert "WARNUNG" in capsys.readouterr().out
 

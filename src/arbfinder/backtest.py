@@ -37,8 +37,12 @@ from arbfinder.validation import Verdict, judge, purged_split
 # Ehrlicher Hinweis fuer den Output praediktiver Strategien (siehe run_validated).
 VALIDATION_NOTE = (
     "Hinweis: In-/Out-of-Sample-Split (purged_split) ist verdrahtet & getestet, "
-    "aber nur ein Mechanismus — aussagekraeftig erst mit genug historischen Quoten "
-    "UND Ergebnissen. Bei duenner Datenlage bleibt das Urteil bewusst 'parked'."
+    "aber nur ein Mechanismus. Fuer ein NICHT lernendes Modell (wie Konsens-Devig) "
+    "entspricht der Test-Fold-Durchlauf rechnerisch dem In-Sample — das Modell "
+    "lernt nichts aus dem Train-Fold; ein echter Holdout wird er erst mit einer "
+    "lernenden Strategie. Aussagekraeftig wird Validierung ohnehin erst mit genug "
+    "historischen Quoten UND Ergebnissen; bei duenner Datenlage bleibt das Urteil "
+    "bewusst 'parked'."
 )
 
 
@@ -156,6 +160,7 @@ def run_validated(
     k: int = 5,
     embargo: float = 0.01,
     min_samples: int = 30,
+    n_trials: int = 1,
     **kwargs: Any,
 ) -> tuple[BacktestResult, Verdict]:
     """Backtest MIT In-/Out-of-Sample-Validierung fuer praediktive Strategien.
@@ -166,14 +171,19 @@ def run_validated(
     REALISIERTE Ergebnis (PnL je Einsatz) der Signale berechnet, die einen
     bekannten Ausgang ('result') haben. Dieses Out-of-Sample-Ergebnis plus die
     Zahl der belegten OOS-Wetten (``n_samples``) gehen in ``judge`` ein.
+    ``n_trials`` (Zahl getesteter Varianten, z.B. bei einem Parameter-Sweep) wird
+    fuer die informative Deflation weitergereicht — Default 1 (keine Deflation).
 
     EHRLICHE EINORDNUNG (nicht ueberverkaufen): Der Split ist verdrahtet und
-    getestet, aber NUR ein Mechanismus. Echte Validierung braucht ausreichend
-    historische Quoten UND Ergebnisse. Solange zu wenige belegte OOS-Wetten
-    vorliegen (``n_samples < min_samples``) ODER gar keine Ergebnisse existieren,
-    bleibt das Urteil bewusst "parked" — NICHT faelschlich "confirmed". Mit der
-    winzigen Beispiel-Fixture ist somit nur der MECHANISMUS getestet, keine
-    inhaltliche Bestaetigung.
+    getestet, aber NUR ein Mechanismus. Fuer ein NICHT lernendes Modell (Konsens-
+    Devig lernt nichts aus dem Train-Fold) entspricht der Test-Fold-Durchlauf
+    rechnerisch dem In-Sample; zum echten Holdout wird er erst mit einer lernenden
+    Strategie. Echte Validierung braucht ausreichend historische Quoten UND
+    Ergebnisse. Solange zu wenige belegte OOS-Wetten vorliegen
+    (``n_samples < min_samples``) ODER gar keine Ergebnisse existieren, bleibt das
+    Urteil bewusst "parked" — NICHT faelschlich "confirmed". Mit der winzigen
+    Beispiel-Fixture ist somit nur der MECHANISMUS getestet, keine inhaltliche
+    Bestaetigung.
     """
     result = run(strategy_name, snapshots_path, **kwargs)
     strat = get(strategy_name)
@@ -205,7 +215,7 @@ def run_validated(
 
     oos_edge = round(pnl / staked * 100.0, 3) if staked > 0 else None
     verdict = make_verdict(
-        strategy_name, result,
+        strategy_name, result, n_trials=n_trials,
         out_of_sample_edge=oos_edge, n_samples=n_oos, min_samples=min_samples,
     )
     return result, verdict
