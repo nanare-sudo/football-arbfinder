@@ -161,6 +161,9 @@ def simulate(
             ruin_date = b.commence_time.isoformat()
             break
 
+        if b.won is None:                            # ungesettelte Wette zaehlt nicht als Verlust
+            continue
+
         if rule == "flat":
             desired = flat_stake
         else:

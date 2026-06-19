@@ -102,7 +102,8 @@ def plot_clv_compare(clv_a: list[float], clv_b: list[float], *,
     ax.set_title("CLV-Vergleich: Pinnacle-Anker vs. Konsens-Anker")
     ax.set_xlabel("CLV pro Wette (%)")
     ax.set_ylabel("Anzahl Wetten")
-    ax.legend()
+    if clv_a or clv_b:                               # sonst: 'No artists with labels' Warnung
+        ax.legend()
     ax.grid(axis="y", alpha=0.3)
     fig.tight_layout()
     return _save(fig, out_path)
@@ -140,7 +141,7 @@ def plot_odds_buckets(buckets: list[dict], *, out_path: str = "results/odds_buck
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    names = [b["bucket"] for b in buckets]
+    names = [b.get("bucket", "?") for b in buckets]
     rois = [b.get("roi_pct") or 0.0 for b in buckets]
     ns = [b.get("n_bets") or 0 for b in buckets]
     fig, ax = plt.subplots(figsize=(8, 4.5))
@@ -163,8 +164,9 @@ def plot_haircut(haircut_rows: list[dict], *, out_path: str = "results/haircut.p
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    hs = [r["haircut_pct"] for r in haircut_rows]
-    rois = [r.get("roi_pct") or 0.0 for r in haircut_rows]
+    rows = [r for r in haircut_rows if r.get("haircut_pct") is not None]
+    hs = [r["haircut_pct"] for r in rows]
+    rois = [r.get("roi_pct") or 0.0 for r in rows]
     fig, ax = plt.subplots(figsize=(8, 4.5))
     ax.plot(hs, rois, marker="o", color="#8e44ad", linewidth=1.5)
     ax.axhline(0.0, color="black", linewidth=1.0)

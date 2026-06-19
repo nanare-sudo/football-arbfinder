@@ -165,22 +165,29 @@ def clv_stats(bets: list[PinnBet]) -> dict[str, Any]:
 # --------------------------------------------------------------------------- #
 # Gruppen-Aufschluesselung (PnL aus dem flat-Lauf + CLV der Gruppe)
 # --------------------------------------------------------------------------- #
-def _grouped(placed, key: Callable[[PinnBet], str], field: str) -> list[dict]:
+def _grouped(bets: list[PinnBet], key: Callable[[PinnBet], str], field: str) -> list[dict]:
+    """Per-Gruppe ROI/CLV als RUIN-UNABHAENGIGE Flat-1-Einheit-Kennzahl.
+
+    Bewusst NICHT aus dem Bankroll-Pfad (simulate) gerechnet: dort bricht der
+    Lauf bei Ruin ab, sodass spaetere Saisons faelschlich als -100 % erschienen
+    (Bankroll-Erschoepfungs-Artefakt). Hier zaehlt jede settled Wette 1 Einheit:
+    pnl = (odd-1) bei Sieg, sonst -1; roi = pnl / n. So misst by_season/bookie/
+    bucket den echten Edge je Gruppe, unabhaengig vom Bankroll-Pfad.
+    """
     groups: dict[str, dict] = {}
-    for pb in placed:
-        g = groups.setdefault(key(pb.record), {"n": 0, "pnl": 0.0, "turnover": 0.0, "clvs": []})
+    for b in bets:
+        g = groups.setdefault(key(b), {"n": 0, "pnl": 0.0, "clvs": []})
         g["n"] += 1
-        g["pnl"] += pb.pnl
-        g["turnover"] += pb.stake
-        if pb.record.clv_pct is not None:
-            g["clvs"].append(pb.record.clv_pct)
+        g["pnl"] += (b.odd - 1.0) if b.won else -1.0
+        if b.clv_pct is not None:
+            g["clvs"].append(b.clv_pct)
     rows = []
     for name, g in sorted(groups.items()):
         rows.append({
             field: name, "n_bets": g["n"],
             "clv_mean_pct": _r(sum(g["clvs"]) / len(g["clvs"])) if g["clvs"] else None,
             "pnl": _r(g["pnl"], 2),
-            "roi_pct": _r(g["pnl"] / g["turnover"] * 100.0) if g["turnover"] > 0 else 0.0,
+            "roi_pct": _r(g["pnl"] / g["n"] * 100.0) if g["n"] else 0.0,
         })
     return rows
 
@@ -213,9 +220,9 @@ def _anchor_report(bets: list[PinnBet], *, start_capital, flat_pct, kelly_fracti
         "clv": clv_stats(bets),
         "pnl_flat": _sim_summary(flat),
         "pnl_kelly": _sim_summary(kelly),
-        "by_season": _grouped(flat.placed, lambda r: r.season, "season"),
-        "by_bookie": _grouped(flat.placed, lambda r: r.bookie, "bookie"),
-        "by_odds_bucket": _grouped(flat.placed, lambda r: _odds_bucket(r.odd), "bucket"),
+        "by_season": _grouped(settled, lambda b: b.season, "season"),
+        "by_bookie": _grouped(settled, lambda b: b.bookie, "bookie"),
+        "by_odds_bucket": _grouped(settled, lambda b: _odds_bucket(b.odd), "bucket"),
         "haircut_sensitivity": sweep,
     }
     plotdata = {
@@ -294,17 +301,38 @@ def _head_to_head(pinn: dict, cons: dict) -> dict:
     cons_flip = _signflip(cons["by_season"])
     pinn_flip = _signflip(pinn["by_season"])
     fixed = cons_flip and not pinn_flip
+    # Drei-Zustands-Diagnose statt eines neutralen "nicht behoben": der Boolean
+    # allein kollabiert "nichts zu beheben" und "Pinnacle FUEHRT einen Wechsel
+    # EIN" (Regression) auf denselben False-Wert. Das ist die Praemisse des
+    # Moduls (Konsens=Artefakt via Vorzeichenwechsel) — sie muss ehrlich gegen
+    # die Daten geprueft werden.
+    if cons_flip and not pinn_flip:
+        state, verdict_txt = "fixed", "Pinnacle behebt den Vorzeichenwechsel."
+    elif not cons_flip and pinn_flip:
+        state = "pinnacle_introduced_flip"
+        verdict_txt = ("REGRESSION: Pinnacle FUEHRT einen Saison-Vorzeichenwechsel EIN, "
+                       "den der Konsens nicht hatte.")
+    elif cons_flip and pinn_flip:
+        state, verdict_txt = "both_flip", "beide Anker wechseln das Vorzeichen — nicht behoben."
+    else:
+        state = "no_flip_to_fix"
+        verdict_txt = ("kein Vorzeichenwechsel beim Konsens auf diesen Daten — die Praemisse "
+                       "(Konsens=Artefakt) reproduziert hier NICHT, es gibt nichts zu beheben.")
+    n_p = pinn["clv"]["n"]
+    n_c = cons["clv"]["n"]
     p_clv = pinn["clv"]["mean_clv_pct"]
     c_clv = cons["clv"]["mean_clv_pct"]
     summary = (
-        f"Pinnacle-Anker: CLV-Mittel {p_clv}% (Anteil positiv {pinn['clv']['share_positive_pct']}%); "
-        f"Konsens-Anker: CLV-Mittel {c_clv}%. "
+        f"Pinnacle-Anker (n={n_p}): CLV-Mittel {p_clv}% (Anteil positiv {pinn['clv']['share_positive_pct']}%); "
+        f"Konsens-Anker (n={n_c}): CLV-Mittel {c_clv}%. "
+        "Hinweis: beide Anker selektieren UNTERSCHIEDLICHE Wettmengen (eigener Edge-Filter), "
+        "CLV-/ROI-Unterschiede spiegeln daher teils die Auswahl, nicht nur die Anker-Qualitaet. "
         f"Saison-Vorzeichenwechsel: Konsens={'ja' if cons_flip else 'nein'}, "
-        f"Pinnacle={'ja' if pinn_flip else 'nein'} -> "
-        + ("behoben." if fixed else "NICHT (eindeutig) behoben.")
+        f"Pinnacle={'ja' if pinn_flip else 'nein'} -> " + verdict_txt
     )
     return {"sign_flip_consensus": cons_flip, "sign_flip_pinnacle": pinn_flip,
-            "sign_flip_fixed": fixed, "summary_text": summary}
+            "sign_flip_fixed": fixed, "premise_reproduced": cons_flip,
+            "sign_flip_state": state, "summary_text": summary}
 
 
 def _verdict(pinn: dict, *, bet_source: str = "Max") -> dict:
@@ -321,7 +349,10 @@ def _verdict(pinn: dict, *, bet_source: str = "Max") -> dict:
            else "schlaegt die scharfe Schlusslinie NICHT konsistent (Edge fraglich).")
     )
     # SEKUNDAERE Bestaetigung: PnL/Drawdown/Ruin. Widerspricht sie dem CLV, ist das ein Warnsignal.
-    pnl_ok = (flat["end_capital"] is not None and flat["end_capital"] >= flat["start"]
+    # STRIKT positiv: Break-even (0 % ROI) ist kein realisierter Edge und darf nicht bestaetigen.
+    roi = flat["roi_turnover_pct"]
+    pnl_ok = (flat["end_capital"] is not None and flat["end_capital"] > flat["start"]
+              and roi is not None and roi > 0.0
               and not flat["ruin"]["ruined"])
     reasons.append(
         f"PnL (sekundaer): flat {flat['start']}->{flat['end_capital']} EUR, "
@@ -347,7 +378,18 @@ def _verdict(pinn: dict, *, bet_source: str = "Max") -> dict:
         "EPL ist einer der effizientesten Maerkte — der haerteste Ort fuer Value; "
         "ein hier duenner Edge schliesst weniger liquide Ligen nicht aus.",
         "Pinnacle-Schluss ist extrem effizient; positives CLV ist eine starke, aber haltbare Behauptung.",
-        "Bet-Quelle 'Max' = Markt-Maximum: positives CLV ist teils Line-Shopping, kein reiner Prognose-Skill.",
+    ]
+    if bet_source in ("Max", "Avg"):
+        caveats.append(
+            f"Bet-Quelle '{bet_source}' = Markt-Maximum/Mittel: positives CLV ist teils "
+            "Line-Shopping, kein reiner Prognose-Skill."
+        )
+    else:
+        caveats.append(
+            f"Bet-Quelle '{bet_source}' = EINZELNE Quelle (kein Line-Shopping ueber mehrere "
+            "Bookies); CLV misst hier sauberer, faellt aber typisch deutlich niedriger aus."
+        )
+    caveats += [
         "Kosten/Steuern/Gebuehren und Buchmacher-LIMITS sind NICHT modelliert (Gewinner werden limitiert).",
         "IN-SAMPLE: der Anker lernt nichts; CLV ist Vorlaufindikator, kein Out-of-Sample-Beweis.",
     ]
@@ -393,7 +435,7 @@ def summary_text(report: dict) -> str:
         f"(positiv bei {p['share_positive_pct']}% der Wetten), Konsens-Anker {c['mean_clv_pct']}% "
         f"{src_note}. "
         f"Sekundaer (PnL): flat {flat['start']}->{flat['end_capital']} EUR (Ruin={flat['ruin']['ruined']}), "
-        f"Saison-Vorzeichenwechsel behoben={h2h['sign_flip_fixed']}. "
+        f"Saison-Vorzeichenwechsel: {h2h['sign_flip_state']} (behoben={h2h['sign_flip_fixed']}). "
         f"Verdict: {'Edge bestaetigt (CLV positiv UND PnL traegt)' if v['survives'] else 'Edge NICHT bestaetigt — positives CLV ohne PnL-Bestaetigung'} "
         f"— in-sample, EPL hocheffizient, Kosten/Limits nicht modelliert."
     )

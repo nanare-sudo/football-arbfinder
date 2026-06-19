@@ -314,9 +314,13 @@ ueber viele Bookies, das eine einzelne scharfe Schlussquote fast zwangslaeufig
 schlaegt. Wettet man stattdessen eine **EINZELNE** Quelle (`--bet-source B365`),
 faellt das CLV auf **+2.7 % (55 % positiv)** — knapp an der Effizienzgrenze. Und
 **keine** Variante traegt sich als PnL: flat aus 100 € **ruiniert** mit Max
-(→ 0 €), endet mit B365 bei ~88 €; der Saison-Vorzeichenwechsel ist **nicht**
-behoben. **Verdict: NICHT bestaetigt** — positives CLV ohne PnL-Bestaetigung,
-und das starke CLV ist Line-Shopping, kein Prognose-Skill.
+(→ 0 €), endet mit B365 bei ~88 €. Der Saison-Vorzeichenwechsel ist **nicht
+behoben** — und ehrlicherweise reproduziert die motivierende Praemisse („Konsens
+= Artefakt via Vorzeichenwechsel") auf diesen Daten gar nicht: mit Max wechselt
+der Konsens-Anker gar nicht das Vorzeichen, der **Pinnacle-Anker fuehrt ihn sogar
+neu ein** (per-Saison-ROI ruin-unabhaengig gerechnet: +1.9 / −29.8 / −16.9 %).
+**Verdict: NICHT bestaetigt** — positives CLV ohne PnL-Bestaetigung, und das
+starke CLV ist Line-Shopping, kein Prognose-Skill.
 
 **Ehrliche Einordnung:** Die EPL ist einer der effizientesten Maerkte — der
 haerteste Ort fuer Value; ein hier duenner/fehlender Edge schliesst weniger
