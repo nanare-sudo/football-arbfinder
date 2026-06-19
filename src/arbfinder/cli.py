@@ -130,6 +130,38 @@ def _cmd_backtest(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_record(args: argparse.Namespace) -> int:
+    from arbfinder.providers import TheOddsApiProvider
+    from arbfinder.recorder import Recorder
+
+    provider = TheOddsApiProvider(sport=args.sport, regions=args.regions, markets=args.markets)
+    if not provider.api_key:
+        print("Kein ODDS_API_KEY gesetzt — Aufzeichnung braucht eine lizenzierte API "
+              "(kein Scraping). Setze: export ODDS_API_KEY=...")
+        return 1
+    rec = Recorder(provider, args.out)
+    if args.once:
+        n = rec.tick()
+        print(f"{n} Zeilen aufgezeichnet -> {args.out}")
+    else:
+        print(f"Recorder startet (alle {args.interval} min) -> {args.out}. "
+              f"Nur Aufzeichnung, nie setzen. Ctrl-C zum Stoppen.")
+        rec.start(args.interval)
+    return 0
+
+
+def _cmd_fetch_results(args: argparse.Namespace) -> int:
+    from arbfinder.results import TheOddsApiScores, attach_results
+
+    source = TheOddsApiScores(sport=args.sport, days_from=args.days_from)
+    if not source.api_key:
+        print("Kein ODDS_API_KEY gesetzt — Ergebnisse brauchen eine lizenzierte API.")
+        return 1
+    n = attach_results(args.data, source)
+    print(f"{n} Zeile(n) mit Ergebnis ergaenzt in {args.data}")
+    return 0
+
+
 # --------------------------------------------------------------------------- #
 # Parser
 # --------------------------------------------------------------------------- #
@@ -158,6 +190,22 @@ def build_parser() -> argparse.ArgumentParser:
     bt.add_argument("--data", default="fixtures/recorded_odds.jsonl")
     bt.add_argument("--out", default="results/last_backtest.json")
     bt.set_defaults(func=_cmd_backtest)
+
+    rec = sub.add_parser("record", help="Quoten periodisch aufzeichnen (lizenzierte API)")
+    rec.add_argument("--interval", type=float, default=10.0, help="Intervall in Minuten")
+    rec.add_argument("--out", default="data/recorded_odds.jsonl")
+    rec.add_argument("--sport", default="upcoming", help="Sport-Key (The Odds API)")
+    rec.add_argument("--regions", default="eu")
+    rec.add_argument("--markets", default="h2h")
+    rec.add_argument("--once", action="store_true", help="Einmal abfragen und beenden")
+    rec.set_defaults(func=_cmd_record)
+
+    fr = sub.add_parser("fetch-results", help="Ergebnisse zu aufgezeichneten Events nachtragen")
+    fr.add_argument("--data", default="data/recorded_odds.jsonl")
+    fr.add_argument("--sport", default="upcoming", help="Sport-Key (scores-Endpoint)")
+    fr.add_argument("--days-from", dest="days_from", type=int, default=3,
+                    help="Wie viele Tage zurueck Ergebnisse abgefragt werden")
+    fr.set_defaults(func=_cmd_fetch_results)
 
     return p
 

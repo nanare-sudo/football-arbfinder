@@ -58,6 +58,8 @@ providers/         Datenquellen -> einheitliche Event-Objekte (defensiv parsen)
   theoddsapi.py    STUB fuer eine lizenzierte API (Key via ODDS_API_KEY)
 models.py          anbieterunabhaengige Event/Market (start_time ist Pflicht)
 normalize.py       3-Stufen-Teamnormalisierung + Event-Identitaet (Teams+Zeit)
+recorder.py        zeichnet echte Quoten-Snapshots auf (append-only, lizenz. API)
+results.py         traegt echte Ergebnisse nach (ResultSource, scores-Endpoint)
 detector.py        Pipeline: fetch -> normalize/merge -> pro Markt pruefen ->
                    Vollstaendigkeit zaehlen -> Strategie -> Mindest-Profit
 strategies/        austauschbare Strategien (arbitrage, value; Vorbild: arbitrage.py)
@@ -169,6 +171,42 @@ pip install -e ".[live]"
 
 Der Mapping-Teil (`parse_response`) ist ohne Netzwerk getestet; der Live-Abruf
 braucht einen gueltigen Schluessel und eine gueltige Lizenz.
+
+## Daten sammeln — der eigentliche Engpass
+
+Der Backtest misst nur **Detektion**, solange keine historischen Quoten MIT
+Ergebnissen vorliegen. Das schliesst der Recorder (alles ueber die lizenzierte
+API, **kein Scraping**):
+
+```bash
+export ODDS_API_KEY="dein_lizenzierter_schluessel"   # nie committen (.env)
+pip install -e ".[live,agent]"
+
+# 1) Quoten ueber Tage/Wochen aufzeichnen (append-only)
+arbfinder record --interval 10 --sport soccer_epl --out data/epl.jsonl
+
+# 2) Nach den Spielen die tatsaechlichen Ausgaenge nachtragen (scores-Endpoint)
+arbfinder fetch-results --data data/epl.jsonl --sport soccer_epl --days-from 3
+
+# 3) Backtesten — mit Ergebnissen misst der Backtest jetzt auch PnL, nicht nur Detektion
+arbfinder backtest --strategy value --data data/epl.jsonl
+```
+
+Realistischer Ablauf: Recorder ueber Tage/Wochen laufen lassen, regelmaessig
+`fetch-results` ziehen (der scores-Endpoint reicht nur begrenzt zurueck, siehe
+`--days-from`), dann backtesten. Erst mit **genuegend** Snapshots MIT Ergebnissen
+wird der `confirmed`-Pfad fuer praediktive Strategien aussagekraeftig — vorher
+bleibt es bewusst `parked`.
+
+Ehrlich zur **Quoten-Latenz**: je API-Tier liegen Sekunden bis Minuten zwischen
+echter Quotenaenderung und Abruf. Ein im Snapshot erkanntes Signal war also nicht
+zwingend real setzbar — dokumentiere die Snapshot-Frequenz (`--interval`), wenn du
+spaeter Profitabilitaet bewertest. Das API-**Kontingent** ist begrenzt (der Recorder
+loggt den Verbrauch); `--interval` ist die primaere Rate-Kontrolle.
+
+Die Ergebnis-Quelle ist **austauschbar** (`results.ResultSource`): deckt The Odds
+API eine Sportart/Periode nicht ab, kann eine andere Quelle eingehaengt werden.
+Fehlt ein Ergebnis, bleibt `result` offen — es wird **nichts erfunden**.
 
 ## Leitplanken
 
