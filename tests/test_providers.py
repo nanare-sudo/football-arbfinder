@@ -142,14 +142,11 @@ def test_theoddsapi_ohne_key_wirft_klare_meldung(monkeypatch):
 
 
 class _Resp:
-    def __init__(self, data, headers=None):
-        self._data, self.headers = data, headers or {}
+    def __init__(self, data, headers=None, *, ok=True, status_code=200):
+        self._data, self.headers, self.ok, self.status_code = data, headers or {}, ok, status_code
 
     def json(self):
         return self._data
-
-    def raise_for_status(self):
-        pass
 
 
 def test_theoddsapi_fetch_gemockt_erfasst_kontingent(monkeypatch):
@@ -161,3 +158,30 @@ def test_theoddsapi_fetch_gemockt_erfasst_kontingent(monkeypatch):
     events = prov.fetch_events()
     assert events and events[0].home == "Manchester City"
     assert prov.last_quota == {"remaining": "123", "used": "7"}   # Verbrauch erfasst
+
+
+def test_theoddsapi_http_fehler_leakt_keinen_key(monkeypatch):
+    import requests
+
+    monkeypatch.setattr(requests, "get", lambda *a, **k: _Resp([], ok=False, status_code=401))
+    prov = TheOddsApiProvider(sport="soccer_epl", api_key="SECRET123")
+    with pytest.raises(ProviderError) as ei:
+        prov.fetch_events()
+    assert "SECRET123" not in str(ei.value)           # Key NICHT in der Fehlermeldung
+    assert "401" in str(ei.value)
+
+
+def test_theoddsapi_netzwerkfehler_leakt_keinen_key(monkeypatch):
+    import requests
+
+    def boom(*a, **k):
+        # requests-Fehlertexte enthalten typ. die volle URL inkl. apiKey=...
+        raise requests.exceptions.ConnectionError(
+            "HTTPSConnectionPool: url: /v4/sports/x/odds?apiKey=SECRET123&regions=eu")
+
+    monkeypatch.setattr(requests, "get", boom)
+    prov = TheOddsApiProvider(sport="soccer_epl", api_key="SECRET123")
+    with pytest.raises(ProviderError) as ei:
+        prov.fetch_events()
+    assert "SECRET123" not in str(ei.value)
+    assert ei.value.__cause__ is None                 # Kette unterdrueckt (kein Leak ueber __cause__)

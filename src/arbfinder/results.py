@@ -131,8 +131,14 @@ class TheOddsApiScores(ResultSource):
             ) from exc
         url = f"{self.base_url}/sports/{self.sport}/scores"
         params = {"apiKey": self.api_key, "daysFrom": self.days_from}
-        resp = requests.get(url, params=params, timeout=15)
-        resp.raise_for_status()
+        try:
+            resp = requests.get(url, params=params, timeout=15)
+        except requests.exceptions.RequestException as exc:
+            # 'from None' + nur Typname: der API-Key (Query in der URL) darf NICHT
+            # ueber die Exception in Logs/Tracebacks landen (Leitplanke).
+            raise ProviderError(f"Scores-API nicht erreichbar: {type(exc).__name__}") from None
+        if not resp.ok:
+            raise ProviderError(f"Scores-API HTTP {resp.status_code}")   # KEINE URL/kein Key
         return parse_scores(resp.json())
 
 

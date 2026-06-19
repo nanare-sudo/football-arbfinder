@@ -190,11 +190,18 @@ class TheOddsApiProvider(OddsProvider):
             "markets": self.markets,
             "oddsFormat": self.odds_format,
         }
-        resp = requests.get(url, params=params, timeout=15)
-        # Kontingent-Header VOR raise_for_status lesen (auch bei Fehlern nuetzlich).
+        try:
+            resp = requests.get(url, params=params, timeout=15)
+        except requests.exceptions.RequestException as exc:
+            # WICHTIG: 'from None' + nur Typname. Der API-Key steckt als Query in
+            # der URL; requests-Exceptions enthalten die URL -> der Key darf NICHT
+            # ueber die Exception in Logs/Tracebacks gelangen (Leitplanke).
+            raise ProviderError(f"Odds-API nicht erreichbar: {type(exc).__name__}") from None
+        # Kontingent-Header festhalten (auch bei Fehlern nuetzlich).
         self.last_quota = {
             "remaining": resp.headers.get("x-requests-remaining"),
             "used": resp.headers.get("x-requests-used"),
         }
-        resp.raise_for_status()
+        if not resp.ok:
+            raise ProviderError(f"Odds-API HTTP {resp.status_code}")   # KEINE URL/kein Key
         return parse_response(resp.json())

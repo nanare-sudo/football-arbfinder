@@ -151,13 +151,18 @@ def _cmd_record(args: argparse.Namespace) -> int:
 
 
 def _cmd_fetch_results(args: argparse.Namespace) -> int:
+    from arbfinder.providers.base import ProviderError
     from arbfinder.results import TheOddsApiScores, attach_results
 
     source = TheOddsApiScores(sport=args.sport, days_from=args.days_from)
     if not source.api_key:
         print("Kein ODDS_API_KEY gesetzt — Ergebnisse brauchen eine lizenzierte API.")
         return 1
-    n = attach_results(args.data, source)
+    try:
+        n = attach_results(args.data, source)
+    except ProviderError as exc:           # redigierte Meldung (kein Key/keine URL)
+        print(f"Ergebnis-Abruf fehlgeschlagen: {exc}")
+        return 1
     print(f"{n} Zeile(n) mit Ergebnis ergaenzt in {args.data}")
     return 0
 

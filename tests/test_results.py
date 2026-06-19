@@ -126,15 +126,11 @@ def test_attach_results_erhaelt_kommentarzeilen(tmp_path):
 # Mocked API (kein echter Netzwerk-Call)
 # --------------------------------------------------------------------------- #
 class _Resp:
-    def __init__(self, data, headers=None):
-        self._data = data
-        self.headers = headers or {}
+    def __init__(self, data, *, ok=True, status_code=200):
+        self._data, self.ok, self.status_code = data, ok, status_code
 
     def json(self):
         return self._data
-
-    def raise_for_status(self):
-        pass
 
 
 def test_theoddsapi_scores_fetch_gemockt(monkeypatch):
@@ -149,3 +145,13 @@ def test_theoddsapi_scores_fetch_gemockt(monkeypatch):
 def test_theoddsapi_scores_ohne_key_wirft():
     with pytest.raises(ProviderError):
         TheOddsApiScores(sport="soccer_epl", api_key="").results()
+
+
+def test_scores_http_fehler_leakt_keinen_key(monkeypatch):
+    import requests
+
+    monkeypatch.setattr(requests, "get", lambda *a, **k: _Resp([], ok=False, status_code=429))
+    src = TheOddsApiScores(sport="soccer_epl", api_key="SECRET123")
+    with pytest.raises(ProviderError) as ei:
+        src.results()
+    assert "SECRET123" not in str(ei.value) and "429" in str(ei.value)
