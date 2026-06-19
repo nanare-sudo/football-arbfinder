@@ -8,11 +8,26 @@ from arbfinder.providers.base import read_jsonl
 from arbfinder.providers.footballdata import (
     FootballDataProvider,
     _bookie_triples,
+    _decode_csv,
     _parse_kickoff,
+    load_pinnacle_events,
     to_jsonl,
 )
 
 _SAMPLE = "tests/data/footballdata_sample.csv"
+
+
+def test_decode_csv_cp1252_fallback(tmp_path):
+    # football-data liefert manche Dateien als Windows-1252 (cp1252), nicht UTF-8:
+    # 0x92 (rechtes Apostroph, z.B. "Nott'm Forest") laesst utf-8 scheitern.
+    header = "Div,Date,HomeTeam,AwayTeam,FTR,PSH,PSD,PSA,B365H,B365D,B365A\n"
+    row = "EC,12/08/2023,Nott’m Forest,Barnet,H,2.10,3.50,3.80,2.30,3.00,3.20\n"
+    p = tmp_path / "EC_cp.csv"
+    p.write_bytes((header + row).encode("cp1252"))         # enthaelt Byte 0x92
+    text = _decode_csv(p)
+    assert "Nott’m Forest" in text                    # korrekt als cp1252 dekodiert
+    evs = load_pinnacle_events(p, bet_source="B365")       # Loader scheitert NICHT mehr
+    assert len(evs) == 1 and "Nott" in evs[0].home
 
 
 def test_mappt_spalten_und_setzt_result():

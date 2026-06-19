@@ -30,6 +30,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 import csv
+import io
 import json
 import logging
 
@@ -39,6 +40,30 @@ from arbfinder.providers.base import OddsProvider, coerce_float, first_present
 from arbfinder.recorder import _event_rows
 
 logger = logging.getLogger("arbfinder.providers.footballdata")
+
+
+def _decode_csv(path: str | Path) -> str:
+    """Liest eine football-data CSV defensiv und ENCODING-tolerant.
+
+    football-data.co.uk liefert die aelteren/manche Dateien als Windows-1252
+    (cp1252), nicht als UTF-8 — z.B. das Apostroph 0x92 in Teamnamen
+    ('Nott'm Forest', irische/englische Vereine). utf-8(-sig) wuerde daran
+    scheitern. Reihenfolge: utf-8-sig -> cp1252 -> latin-1. latin-1 dekodiert
+    JEDES Byte und schlaegt nie fehl (letztes Netz, kein stiller Platzhalter:
+    es wird echt dekodiert, nur konservativ).
+    """
+    raw = Path(path).read_bytes()
+    for enc in ("utf-8-sig", "cp1252"):
+        try:
+            return raw.decode(enc)
+        except UnicodeDecodeError:
+            continue
+    return raw.decode("latin-1")
+
+
+def _csv_reader(path: str | Path) -> csv.DictReader:
+    """``csv.DictReader`` ueber den encoding-tolerant dekodierten CSV-Inhalt."""
+    return csv.DictReader(io.StringIO(_decode_csv(path)))
 
 # Aggregat-Spalten (kein einzelner Buchmacher) — vom Konsens ausschliessen.
 _AGGREGATE_BASES = {"Max", "Avg", "BbMx", "BbAv"}
@@ -138,17 +163,16 @@ class FootballDataProvider(OddsProvider):
         self.path = Path(path)
 
     def fetch_events(self) -> list[Event]:
-        with self.path.open(newline="", encoding="utf-8-sig") as fh:
-            reader = csv.DictReader(fh)
-            triples = _bookie_triples(reader.fieldnames or [])
-            events: list[Event] = []
-            skipped = 0
-            for i, row in enumerate(reader):
-                try:
-                    events.append(_row_to_event(row, triples))
-                except (KeyError, ValueError) as exc:
-                    skipped += 1
-                    logger.warning("Zeile %d uebersprungen: %s", i, exc)
+        reader = _csv_reader(self.path)
+        triples = _bookie_triples(reader.fieldnames or [])
+        events: list[Event] = []
+        skipped = 0
+        for i, row in enumerate(reader):
+            try:
+                events.append(_row_to_event(row, triples))
+            except (KeyError, ValueError) as exc:
+                skipped += 1
+                logger.warning("Zeile %d uebersprungen: %s", i, exc)
         if skipped:
             logger.warning("%d/%d Zeilen uebersprungen (fehlende Pflichtfelder).",
                            skipped, skipped + len(events))
@@ -233,22 +257,21 @@ def load_pinnacle_events(csv_path: str | Path, *, bet_source: str = "Max") -> li
     Kein Scraping — nur die offiziell angebotenen CSV-Dateien. Wirft, wenn keine
     Pinnacle-Eroeffnungsquoten (PS*) vorhanden sind.
     """
-    with Path(csv_path).open(newline="", encoding="utf-8-sig") as fh:
-        reader = csv.DictReader(fh)
-        opening, closing = _classify_triples(reader.fieldnames or [])
-        if PINNACLE_OPEN_KEY not in opening:
-            raise ValueError("Keine Pinnacle-Eroeffnungsquoten (PS*) in der CSV.")
-        if bet_source not in opening:                    # Konfig-Fehler -> sofort, nicht je Zeile
-            raise ValueError(f"Bet-Quelle {bet_source!r} fehlt (vorhanden: {sorted(opening)}).")
-        ps_close = closing.get(PINNACLE_OPEN_KEY)        # PSC*-Spalten (oder None)
-        events: list[Event] = []
-        skipped = 0
-        for i, row in enumerate(reader):
-            try:
-                events.append(_row_to_pinnacle_event(row, opening, ps_close))
-            except (KeyError, ValueError) as exc:
-                skipped += 1
-                logger.warning("Zeile %d uebersprungen: %s", i, exc)
+    reader = _csv_reader(csv_path)
+    opening, closing = _classify_triples(reader.fieldnames or [])
+    if PINNACLE_OPEN_KEY not in opening:
+        raise ValueError("Keine Pinnacle-Eroeffnungsquoten (PS*) in der CSV.")
+    if bet_source not in opening:                        # Konfig-Fehler -> sofort, nicht je Zeile
+        raise ValueError(f"Bet-Quelle {bet_source!r} fehlt (vorhanden: {sorted(opening)}).")
+    ps_close = closing.get(PINNACLE_OPEN_KEY)            # PSC*-Spalten (oder None)
+    events: list[Event] = []
+    skipped = 0
+    for i, row in enumerate(reader):
+        try:
+            events.append(_row_to_pinnacle_event(row, opening, ps_close))
+        except (KeyError, ValueError) as exc:
+            skipped += 1
+            logger.warning("Zeile %d uebersprungen: %s", i, exc)
     if skipped:
         logger.warning("%d/%d Zeilen uebersprungen.", skipped, skipped + len(events))
     return events
