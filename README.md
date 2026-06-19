@@ -4,8 +4,8 @@
 reachable book systematically beat the sharp closing line — and does the edge
 survive out-of-sample?**
 
+[![CI](https://github.com/nanare-sudo/football-arbfinder/actions/workflows/ci.yml/badge.svg)](https://github.com/nanare-sudo/football-arbfinder/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
-![Tests](https://img.shields.io/badge/tests-272%20passing-brightgreen)
 ![Typing](https://img.shields.io/badge/mypy-clean-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -163,7 +163,7 @@ caveat visible — is the result.
 
 ## Key engineering decisions
 
-- **`src/` layout, fully typed, mypy-clean (28 modules), 272 tests** — runnable
+- **`src/` layout, fully typed, mypy-clean, 270+ tests** — runnable
   entirely offline against bundled mock fixtures (no API key, no network).
 - **Extensible `Strategy` interface + registry** — arbitrage and value betting are
   interchangeable strategies; a `requires_validation` flag routes *predictive*
@@ -209,11 +209,11 @@ scripts/reproduce.sh    End-to-end regeneration of all results
 ## Installation & usage
 
 ```bash
-git clone <repo-url> && cd arbfinder
+git clone https://github.com/nanare-sudo/football-arbfinder.git && cd football-arbfinder
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev,plot]"     # core is pure-stdlib; matplotlib only for plots
 
-make test      # 272 passing
+make test      # 270+ passing
 make lint      # mypy, clean
 make demo      # offline demo on bundled mock fixtures (no data, no network)
 ```
@@ -320,4 +320,4 @@ Built by **Leonardo Berisha** as a demonstration of quantitative research
 methodology — devigging, leakage-free validation, walk-forward analysis, and honest
 statistical reporting. Feedback and questions welcome.
 
-- GitHub: `<your-handle>`  ·  LinkedIn: `<your-profile>`  ·  Email: `<your-email>`
+- GitHub: [@nanare-sudo](https://github.com/nanare-sudo)  ·  LinkedIn: [Leonardo Berisha](https://de.linkedin.com/in/leonardo-berisha-ba4a88372)

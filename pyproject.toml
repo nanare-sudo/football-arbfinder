@@ -24,7 +24,8 @@ live = ["requests>=2.31"]            # only needed for the live Odds-API provide
 agent = ["apscheduler>=3.10"]        # only needed for the periodic agent
 
 [project.urls]
-Repository = "https://github.com/your-handle/arbfinder"
+Homepage = "https://github.com/nanare-sudo/football-arbfinder"
+Repository = "https://github.com/nanare-sudo/football-arbfinder"
 
 [project.scripts]
 arbfinder = "arbfinder.cli:main"
