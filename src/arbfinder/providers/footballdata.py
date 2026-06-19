@@ -155,6 +155,105 @@ class FootballDataProvider(OddsProvider):
         return events
 
 
+def _classify_triples(fieldnames: Iterable[str]) -> tuple[dict[str, tuple[str, str, str]],
+                                                          dict[str, tuple[str, str, str]]]:
+    """Trennt Quoten-Triples in EROEFFNUNG und SCHLUSS (Closing).
+
+    Returns: (opening{code->cols}, closing{base_code->cols}). Ein '...C'-Prefix
+    gilt nur als Closing, wenn sein Basis-Prefix ohne 'C' existiert (so bleibt
+    VC = VC Bet eine Eroeffnungsquelle, waehrend PSC = Pinnacle-Schluss ist).
+    """
+    fields = set(fieldnames)
+    candidates: dict[str, tuple[str, str, str]] = {}
+    for f in fields:
+        if len(f) >= 2 and f.endswith("H"):
+            prefix = f[:-1]
+            if (prefix + "D") in fields and (prefix + "A") in fields:
+                candidates[prefix] = (f, prefix + "D", prefix + "A")
+
+    def is_closing(p: str) -> bool:
+        return p.endswith("C") and p[:-1] in candidates
+
+    opening = {p: c for p, c in candidates.items() if not is_closing(p)}
+    closing = {p[:-1]: c for p, c in candidates.items() if is_closing(p)}
+    return opening, closing
+
+
+# Pinnacle-Schluss-Quoten je Ausgang werden unter diesem Schluessel abgelegt.
+PINNACLE_CLOSE_KEY = "PSC"
+PINNACLE_OPEN_KEY = "PS"
+
+
+def _row_to_pinnacle_event(
+    row: dict[str, Any],
+    opening: dict[str, tuple[str, str, str]],
+    ps_close: tuple[str, str, str] | None,
+) -> Event:
+    """Mappt eine CSV-Zeile auf ein Event mit ALLEN Eroeffnungsquellen + Pinnacle-Schluss.
+
+    odds[Ausgang] = {<Bookie-Code>: Eroeffnungsquote, ..., 'PSC': Pinnacle-Schluss}.
+    Die Bet-Quelle (z.B. 'Max') ist einer der Eroeffnungs-Codes; PINNACLE_OPEN_KEY
+    ('PS') ist der scharfe Anker; 'PSC' dient dem Closing Line Value.
+    """
+    home = first_present(row, ("HomeTeam", "Home"), default=None)
+    away = first_present(row, ("AwayTeam", "Away"), default=None)
+    if not home or not str(home).strip() or not away or not str(away).strip():
+        raise ValueError("Heim-/Auswaertsteam fehlt")
+    home, away = str(home).strip(), str(away).strip()
+    date_str = str(first_present(row, ("Date",)))
+    start = _parse_kickoff(date_str, str(first_present(row, ("Time",), default="")))
+
+    outcomes = (home, "Draw", away)
+    odds: dict[str, dict[str, float]] = {o: {} for o in outcomes}
+    for code, cols in opening.items():
+        for o, col in zip(outcomes, cols):
+            price = coerce_float(row.get(col))
+            if price is not None and price > 0:
+                odds[o][code] = price
+    if ps_close is not None:
+        for o, col in zip(outcomes, ps_close):
+            price = coerce_float(row.get(col))
+            if price is not None and price > 0:
+                odds[o][PINNACLE_CLOSE_KEY] = price
+
+    ftr = str(first_present(row, ("FTR", "Res"), default="") or "").strip().upper()
+    slot = _RESULT_MAP.get(ftr)
+    result = {"home": home, "Draw": "Draw", "away": away}.get(slot) if slot else None
+
+    return Event(
+        event_id=f"fd:{home}:{away}:{date_str}", home=home, away=away, start_time=start,
+        sport="soccer", league=str(row.get("Div", "") or ""),
+        markets=[Market("h2h", odds, 3)], result=result,
+    )
+
+
+def load_pinnacle_events(csv_path: str | Path, *, bet_source: str = "Max") -> list[Event]:
+    """Laedt E0-CSV-DATEIEN mit Pinnacle (offen+Schluss) + waehlbarer Bet-Quelle.
+
+    Kein Scraping — nur die offiziell angebotenen CSV-Dateien. Wirft, wenn keine
+    Pinnacle-Eroeffnungsquoten (PS*) vorhanden sind.
+    """
+    with Path(csv_path).open(newline="", encoding="utf-8-sig") as fh:
+        reader = csv.DictReader(fh)
+        opening, closing = _classify_triples(reader.fieldnames or [])
+        if PINNACLE_OPEN_KEY not in opening:
+            raise ValueError("Keine Pinnacle-Eroeffnungsquoten (PS*) in der CSV.")
+        if bet_source not in opening:                    # Konfig-Fehler -> sofort, nicht je Zeile
+            raise ValueError(f"Bet-Quelle {bet_source!r} fehlt (vorhanden: {sorted(opening)}).")
+        ps_close = closing.get(PINNACLE_OPEN_KEY)        # PSC*-Spalten (oder None)
+        events: list[Event] = []
+        skipped = 0
+        for i, row in enumerate(reader):
+            try:
+                events.append(_row_to_pinnacle_event(row, opening, ps_close))
+            except (KeyError, ValueError) as exc:
+                skipped += 1
+                logger.warning("Zeile %d uebersprungen: %s", i, exc)
+    if skipped:
+        logger.warning("%d/%d Zeilen uebersprungen.", skipped, skipped + len(events))
+    return events
+
+
 def to_jsonl(csv_path: str | Path, out_path: str | Path, *, known: Iterable[str] | None = None) -> int:
     """Konvertiert eine football-data CSV ueber normalize.py ins JSONL-Backtest-Format.
 

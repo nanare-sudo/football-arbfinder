@@ -136,3 +136,36 @@ def test_value_backtest_auf_footballdata_end_to_end(tmp_path):
     assert res.events == 8 and res.n_with_result == 8              # ECHTE Ergebnisse vorhanden
     assert res.signals > 0 and res.realized_pnl is not None        # PnL wird berechnet
     assert v.status == "parked"                                    # kleine Stichprobe -> nicht confirmed
+
+
+# --------------------------------------------------------------------------- #
+# Pinnacle-Loader (offen + Schluss + waehlbare Bet-Quelle)
+# --------------------------------------------------------------------------- #
+_PINN = "tests/data/footballdata_pinnacle_sample.csv"
+
+
+def test_load_pinnacle_events_keys_und_result():
+    from arbfinder.providers.footballdata import load_pinnacle_events
+    from arbfinder.fair_probability import PinnacleAnchorModel
+
+    evs = load_pinnacle_events(_PINN, bet_source="Max")
+    assert len(evs) == 8
+    e = evs[0]
+    assert e.home == "Man City" and e.result == "Man City"        # FTR=H
+    m = e.markets[0].odds
+    # Eroeffnungsquellen + Pinnacle-Schluss unter eindeutigen Keys:
+    assert {"PS", "PSC", "Max", "B365", "Avg"}.issubset(set(m["Man City"]))
+    assert m["Man City"]["PS"] == 2.00 and m["Man City"]["PSC"] == 2.20
+    assert m["Man City"]["Max"] == 2.40
+    # Pinnacle-Anker (open) devigt sauber:
+    fair = PinnacleAnchorModel(anchor="open").estimate(e.markets[0].odds)
+    assert abs(sum(fair.values()) - 1.0) < 1e-9
+
+
+def test_load_pinnacle_bet_source_b365_und_fehlerfall():
+    from arbfinder.providers.footballdata import load_pinnacle_events
+
+    evs = load_pinnacle_events(_PINN, bet_source="B365")          # andere Bet-Quelle ok
+    assert "B365" in evs[0].markets[0].odds["Man City"]
+    with pytest.raises(ValueError):
+        load_pinnacle_events(_PINN, bet_source="DoesNotExist")
