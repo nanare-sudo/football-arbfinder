@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any, Iterable
 import json
 import logging
+import math
 
 from arbfinder.models import Event
 
@@ -68,13 +69,19 @@ def first_present(row: dict[str, Any], keys: Iterable[str], default: Any = _MISS
 
 
 def coerce_float(value: Any) -> float | None:
-    """Robuste Float-Konvertierung; gibt None bei nicht konvertierbarem Wert."""
+    """Robuste Float-Konvertierung; None bei nicht konvertierbarem ODER nicht-endlichem Wert.
+
+    NaN/inf werden bewusst zu None: sonst rutschen sie durch die ``> 0``-Filter
+    der Provider (``nan <= 0`` und ``inf <= 0`` sind beide False) und erzeugen
+    spaeter stille Phantom-Signale (verbotener Platzhalter, siehe CLAUDE.md).
+    """
     if value is None:
         return None
     try:
-        return float(value)
+        f = float(value)
     except (TypeError, ValueError):
         return None
+    return f if math.isfinite(f) else None
 
 
 def parse_datetime(value: Any) -> datetime:

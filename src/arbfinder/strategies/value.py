@@ -24,6 +24,7 @@ ERKENNEN/MELDEN, nie setzen.
 from __future__ import annotations
 
 from typing import Any
+import math
 
 from arbfinder.fair_probability import ConsensusDevigModel, FairProbabilityModel
 from arbfinder.strategies.base import Signal, Strategy
@@ -60,18 +61,27 @@ class ValueStrategy(Strategy):
 
         signals: list[Signal] = []
         for outcome in outcomes:
-            books = odds[outcome]
-            best_bookie, best_odd = max(books.items(), key=lambda kv: float(kv[1]))
-            best_odd = float(best_odd)
+            # Nur endliche, positive Quoten sind verwertbar (NaN/inf/<=0 raus) —
+            # sonst entstuenden stille Phantom-Signale (siehe CLAUDE.md).
+            candidates = {
+                bk: float(p) for bk, p in odds[outcome].items()
+                if p is not None and math.isfinite(float(p)) and float(p) > 0
+            }
+            if not candidates:
+                continue
+            best_odd = max(candidates.values())
+            best_bookie = max(candidates, key=lambda bk: candidates[bk])
 
-            # Leave-one-out: fairen Konsens OHNE den Anbieter der besten Quote.
-            fair = self.model.estimate(odds, exclude_bookie=best_bookie)
+            # Leave-one-out: fairen Konsens OHNE JEDEN Anbieter, der die beurteilte
+            # (beste) Quote bietet — sonst steckt der beurteilte Preis im Konsens.
+            tied = {bk for bk, p in candidates.items() if p == best_odd}
+            fair = self.model.estimate(odds, exclude_bookie=tied)
             if not fair or outcome not in fair:
                 continue       # kein unabhaengiger Konsens -> kein Signal
 
             p = fair[outcome]
             edge_pct = (best_odd * p - 1.0) * 100.0
-            if edge_pct < self.min_edge_pct:
+            if not math.isfinite(edge_pct) or edge_pct < self.min_edge_pct:
                 continue
 
             signals.append(Signal(

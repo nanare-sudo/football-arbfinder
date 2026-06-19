@@ -22,7 +22,8 @@ mehr, liefert das Modell ``None`` -> kein Signal.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Mapping
+from typing import Iterable, Mapping
+import math
 
 # Ausgang -> {Buchmacher -> Dezimalquote}
 OutcomeOdds = Mapping[str, Mapping[str, float]]
@@ -35,14 +36,16 @@ class FairProbabilityModel(ABC):
 
     @abstractmethod
     def estimate(
-        self, odds: OutcomeOdds, *, exclude_bookie: str | None = None
+        self, odds: OutcomeOdds, *, exclude_bookie: str | Iterable[str] | None = None
     ) -> dict[str, float] | None:
         """Faire Wahrscheinlichkeit je Ausgang (Summe ~ 1) oder ``None``.
 
         Args:
             odds: Ausgang -> {Buchmacher -> Quote} des Marktes.
-            exclude_bookie: optional ein Buchmacher, der NICHT in den Konsens
-                eingehen darf (Leave-one-out gegen Zirkularitaet).
+            exclude_bookie: ein Buchmacher ODER eine Menge von Buchmachern, die
+                NICHT in den Konsens eingehen duerfen (Leave-one-out gegen
+                Zirkularitaet — inkl. aller Anbieter, die die beurteilte Quote
+                ebenfalls bieten).
 
         Returns:
             Verteilung ueber die Ausgaenge (Summe 1) oder ``None``, wenn kein
@@ -65,6 +68,11 @@ class ConsensusDevigModel(FairProbabilityModel):
     ihre Normalisierung sonst verzerrt waere. Bleiben nach Ausschluss/Filterung
     weniger als ``min_books`` Bookies, gibt es keinen unabhaengigen Konsens
     -> ``None``.
+
+    Hinweis zu ``min_books``: Mit dem Default 1 kann der "Konsens" nach
+    Leave-one-out aus einem EINZIGEN unabhaengigen Bookie bestehen — also duenn
+    sein. Fuer eine echte Mehr-Quellen-Bestaetigung ``min_books>=2`` setzen.
+    Duenne Value-Signale faengt ohnehin die Validierung ab (``judge`` -> "parked").
     """
 
     name = "consensus_devig"
@@ -75,17 +83,23 @@ class ConsensusDevigModel(FairProbabilityModel):
         self.min_books = min_books
 
     def estimate(
-        self, odds: OutcomeOdds, *, exclude_bookie: str | None = None
+        self, odds: OutcomeOdds, *, exclude_bookie: str | Iterable[str] | None = None
     ) -> dict[str, float] | None:
         outcomes = [o for o, books in odds.items() if books]
         if len(outcomes) < 2:
             return None
 
+        if exclude_bookie is None:
+            excluded: set[str] = set()
+        elif isinstance(exclude_bookie, str):
+            excluded = {exclude_bookie}
+        else:
+            excluded = set(exclude_bookie)
+
         bookies: set[str] = set()
         for o in outcomes:
             bookies.update(odds[o].keys())
-        if exclude_bookie is not None:
-            bookies.discard(exclude_bookie)
+        bookies -= excluded
 
         distributions: list[dict[str, float]] = []
         for b in bookies:
@@ -93,8 +107,8 @@ class ConsensusDevigModel(FairProbabilityModel):
             complete = True
             for o in outcomes:
                 price = odds[o].get(b)
-                if price is None or float(price) <= 0:
-                    complete = False
+                if price is None or not math.isfinite(float(price)) or float(price) <= 0:
+                    complete = False           # None/NaN/inf/<=0 -> Bookie unbrauchbar
                     break
                 implied[o] = 1.0 / float(price)
             if not complete:                       # Bookie quotet nicht alle Ausgaenge
