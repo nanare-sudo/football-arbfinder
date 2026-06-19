@@ -49,6 +49,26 @@ def test_parse_scores_sieger_remis_offen():
     assert res[("Liverpool", "Chelsea")].winner is None                       # nicht final
 
 
+def test_parse_scores_erfindet_keinen_sieger_bei_fehlenden_scores():
+    raw = [
+        {"home_team": "A", "away_team": "B", "commence_time": "2026-08-15T15:00:00Z",
+         "completed": True, "scores": []},                       # final, aber keine Scores
+        {"home_team": "A", "away_team": "B", "commence_time": "2026-08-15T15:00:00Z",
+         "completed": True, "scores": [{"name": "A", "score": "2"}]},   # nur ein Score
+        {"away_team": "B", "commence_time": "2026-08-15T15:00:00Z",
+         "completed": True, "scores": []},                       # home_team fehlt -> skip
+    ]
+    res = parse_scores(raw)
+    assert len(res) == 2                                         # drittes uebersprungen
+    assert res[0].winner is None and res[1].winner is None       # NICHTS erfunden
+
+
+def test_parse_scores_zweiweg_kein_remis():
+    raw = [{"home_team": "Nadal", "away_team": "Federer", "commence_time": "2026-08-15T15:00:00Z",
+            "completed": True, "scores": [{"name": "Nadal", "score": "2"}, {"name": "Federer", "score": "0"}]}]
+    assert parse_scores(raw)[0].winner == "Nadal"
+
+
 # --------------------------------------------------------------------------- #
 # attach_results: Match ueber Event-Identitaet, nicht rohe Namen
 # --------------------------------------------------------------------------- #
@@ -103,6 +123,63 @@ def test_attach_results_ignoriert_andere_teams(tmp_path):
     src = _FakeSource([EventResult("Liverpool", "Chelsea",
                                    _dt("2026-08-15T15:00:00+00:00"), "Liverpool")])
     assert attach_results(p, src) == 0
+
+
+def test_attach_results_probiert_weitere_treffer_wenn_mapping_scheitert(tmp_path):
+    # Zwei Ergebnisse fuer dasselbe Event: das erste laesst sich NICHT abbilden
+    # (unbekannter Siegername), das zweite schon -> das zweite gewinnt.
+    p = _write(tmp_path, [_snapshot_row()])
+    src = _FakeSource([
+        EventResult("Man City", "Arsenal", _dt("2026-08-15T15:00:00+00:00"), "Unbekanntes Team"),
+        EventResult("Man City", "Arsenal", _dt("2026-08-15T15:00:00+00:00"), "Manchester City"),
+    ])
+    assert attach_results(p, src) == 1
+    assert read_jsonl(p)[0]["result"] == "Man City"
+
+
+def test_attach_results_remis_variante_X(tmp_path):
+    # Snapshot nutzt 'X' als Remis-Schluessel; Sieger 'Draw' -> result == 'X'.
+    p = _write(tmp_path, [_snapshot_row(
+        odds={"Man City": {"A": 2.5}, "X": {"A": 3.2}, "Arsenal": {"A": 2.8}})])
+    src = _FakeSource([EventResult("Man City", "Arsenal",
+                                   _dt("2026-08-15T15:00:00+00:00"), "Draw")])
+    attach_results(p, src)
+    assert read_jsonl(p)[0]["result"] == "X"
+
+
+def test_attach_results_aktualisiert_alle_snapshots_eines_events(tmp_path):
+    # Append-only: dasselbe Event hat mehrere Snapshot-Zeilen -> ALLE bekommen result.
+    r1 = _snapshot_row(ts="2026-08-15T13:00:00Z")
+    r2 = _snapshot_row(ts="2026-08-15T13:10:00Z")
+    other = _snapshot_row(event_id="o", event_name="Liverpool v Chelsea",
+                          commence_time="2026-08-17T14:00:00Z",
+                          odds={"Liverpool": {"A": 2.0}, "Draw": {"A": 3.3}, "Chelsea": {"A": 3.5}})
+    p = _write(tmp_path, [r1, r2, other])
+    src = _FakeSource([EventResult("Man City", "Arsenal",
+                                   _dt("2026-08-15T15:00:00+00:00"), "Man City")])
+    assert attach_results(p, src) == 2
+    assert [r["result"] for r in read_jsonl(p)] == ["Man City", "Man City", None]
+
+
+def test_attach_results_erhaelt_kaputte_json_zeile(tmp_path, caplog):
+    import logging
+
+    p = tmp_path / "d.jsonl"
+    p.write_text("// kommentar\n{kaputt\n" + json.dumps(_snapshot_row()) + "\n", encoding="utf-8")
+    src = _FakeSource([EventResult("Man City", "Arsenal",
+                                   _dt("2026-08-15T15:00:00+00:00"), "Man City")])
+    with caplog.at_level(logging.WARNING):
+        assert attach_results(p, src) == 1
+    lines = p.read_text(encoding="utf-8").splitlines()
+    assert lines[0] == "// kommentar" and lines[1] == "{kaputt"     # beide erhalten
+
+
+def test_attach_results_keine_aenderung_laesst_datei_unveraendert(tmp_path):
+    p = _write(tmp_path, [_snapshot_row()])
+    before = p.read_text(encoding="utf-8")
+    src = _FakeSource([])                                            # keine Ergebnisse
+    assert attach_results(p, src) == 0
+    assert p.read_text(encoding="utf-8") == before                   # byte-identisch
 
 
 def test_attach_results_ueberschreibt_bestehendes_nicht(tmp_path):

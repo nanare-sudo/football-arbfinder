@@ -209,9 +209,16 @@ def attach_results(
             if outcome:
                 row["result"] = outcome
                 updated += 1
-        out_lines.append(json.dumps(row))
+        out_lines.append(json.dumps(row, ensure_ascii=False))
 
-    path.write_text("\n".join(out_lines) + ("\n" if out_lines else ""), encoding="utf-8")
+    if updated == 0:                                  # nichts geaendert -> Datei nicht anfassen
+        logger.info("Ergebnisse nachgetragen: keine Aenderung -> Datei unveraendert.")
+        return 0
+    # Atomar schreiben (Temp-Datei + os.replace): ein Abbruch darf die muehsam
+    # gesammelten, knappen Daten NICHT halb-ueberschreiben.
+    tmp = path.parent / (path.name + ".tmp")
+    tmp.write_text("\n".join(out_lines) + ("\n" if out_lines else ""), encoding="utf-8")
+    os.replace(tmp, path)
     logger.info("Ergebnisse nachgetragen: %d Zeilen aktualisiert.", updated)
     return updated
 
@@ -224,7 +231,12 @@ def _match(row, final, known, tol) -> str | None:
     snap = _row_event(row)
     if snap is None:
         return None
+    # NICHT beim ersten Identitaets-Treffer abbrechen: scheitert dessen Sieger->
+    # Ausgang-Abbildung (z.B. Namensvariante, Duplikat), kann ein weiterer
+    # passender Eintrag sauber abbilden. Erster erfolgreicher Treffer gewinnt.
     for r, res_ev in final:
         if same_event(snap, res_ev, known, time_tolerance_minutes=tol):
-            return _map_winner_to_outcome(r.winner, row.get("odds", {}), known)
+            outcome = _map_winner_to_outcome(r.winner, row.get("odds", {}), known)
+            if outcome:
+                return outcome
     return None
