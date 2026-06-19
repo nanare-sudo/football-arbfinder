@@ -129,3 +129,45 @@ class ConsensusDevigModel(FairProbabilityModel):
         if total <= 0:
             return None
         return {o: v / total for o, v in fair.items()}   # numerisch auf Summe 1
+
+
+class PinnacleAnchorModel(FairProbabilityModel):
+    """Faire Wahrscheinlichkeit aus EINER scharfen Quelle (Pinnacle), devigt.
+
+    Pinnacle gilt als der schaerfste Buchmacher; seine devigte Quote ist ein weit
+    besserer Fair-Value-Anker als ein Konsens vieler (auch schwacher) Bookies.
+    Das Modell liest je Ausgang die Pinnacle-Quote unter ``open_key`` bzw.
+    ``close_key`` (Eroeffnung/Schluss), rechnet 1/Quote und normalisiert auf
+    Summe 1 (Vig raus).
+
+    WICHTIG (Zirkularitaet): Default-Anker ist die EROEFFNUNG (``anchor="open"``).
+    Gegen die SCHLUSSlinie zu ankern und denselben Schluss dann fuer Closing Line
+    Value zu verwenden waere zirkulaer — der CLV waere per Konstruktion ~0.
+    """
+
+    name = "pinnacle_anchor"
+
+    def __init__(self, anchor: str = "open", *, open_key: str = "PS", close_key: str = "PSC") -> None:
+        if anchor not in ("open", "close"):
+            raise ValueError("anchor muss 'open' oder 'close' sein")
+        self.anchor = anchor
+        self.key = open_key if anchor == "open" else close_key
+
+    def estimate(
+        self, odds: OutcomeOdds, *, exclude_bookie: str | Iterable[str] | None = None
+    ) -> dict[str, float] | None:
+        # exclude_bookie ist hier ohne Wirkung: der Anker ist eine SEPARATE Quelle
+        # (Pinnacle), nicht die bewertete Wettquelle -> kein Leave-one-out noetig.
+        outcomes = [o for o, books in odds.items() if books]
+        if len(outcomes) < 2:
+            return None
+        implied: dict[str, float] = {}
+        for o in outcomes:
+            price = odds[o].get(self.key)
+            if price is None or not math.isfinite(float(price)) or float(price) <= 0:
+                return None                              # Anker muss vollstaendig sein
+            implied[o] = 1.0 / float(price)
+        s = sum(implied.values())
+        if s <= 0:
+            return None
+        return {o: implied[o] / s for o in outcomes}     # devigt, Summe 1
