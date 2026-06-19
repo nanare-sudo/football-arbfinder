@@ -60,7 +60,8 @@ models.py          anbieterunabhaengige Event/Market (start_time ist Pflicht)
 normalize.py       3-Stufen-Teamnormalisierung + Event-Identitaet (Teams+Zeit)
 detector.py        Pipeline: fetch -> normalize/merge -> pro Markt pruefen ->
                    Vollstaendigkeit zaehlen -> Strategie -> Mindest-Profit
-strategies/        austauschbare Strategien (Vorbild: arbitrage.py)
+strategies/        austauschbare Strategien (arbitrage, value; Vorbild: arbitrage.py)
+fair_probability.py austauschbares Modell der fairen Wkt. (Konsens-Devig, fuer value)
 arbitrage.py       Mathe-Kern (Marge, Stake-Allokation) — fertig
 backtest.py        Eval-Harness (Metriken) + validation.judge()-Urteil
 validation.py      dreistufiges Urteil (confirmed/parked/rejected), kein Fallbeil
@@ -84,6 +85,29 @@ Slash-Commands als Helfer: `/backtest`, `/new-strategy`, `/experiment`, `/plot`.
 Eine Verbesserung zaehlt nur, wenn sie eine Metrik verbessert, **ohne** eine
 andere unzulaessig zu verschlechtern — insbesondere darf `skipped_incomplete`
 nicht sinken, weil der Vollstaendigkeitsschutz aufgeweicht wurde.
+
+## Strategien
+
+| Strategie   | Idee                                              | Risiko        | `requires_validation` |
+|-------------|---------------------------------------------------|---------------|-----------------------|
+| `arbitrage` | beste Quote je Ausgang, Marge < 1 -> Hedge        | risikoarm     | `False` (Mathe)       |
+| `value`     | beste Quote schlaegt geschaetzte faire Wkt.       | **echt** (kein Hedge) | `True` (praediktiv) |
+
+```bash
+arbfinder scan --provider mock --strategy value          # Value-Gelegenheiten melden
+arbfinder backtest --strategy value                       # -> Urteil i.d.R. "parked"
+```
+
+**Value Betting trägt echtes Risiko.** Anders als Arbitrage gibt es keinen
+Hedge — du setzt auf eine einzelne Quote und kannst verlieren. Alles haengt an
+der Qualitaet des fairen-Wahrscheinlichkeits-Modells (`fair_probability.py`,
+austauschbar). Der erste Schaetzer **Konsens-Devig** ist bewusst grob: er nimmt
+an, der Markt sei im Mittel fair (Vig herausgerechnet) — was er nicht immer ist.
+Zur Vermeidung von Zirkularitaet wird die faire Wahrscheinlichkeit fuer die beste
+Quote per **Leave-one-out** OHNE genau diesen Bookie geschaetzt. Weil `value`
+praediktiv ist, durchlaeuft sie `validation.judge`: ohne Out-of-Sample-Beleg
+lautet das Urteil **"parked"** (vielversprechend, aber noch nicht bestaetigt) —
+nicht "confirmed".
 
 ## Validierung — gegen Selbstbetrug, ohne Gutes zu verwerfen
 
@@ -114,6 +138,10 @@ Betting) schon. Die Deflationierung bei Mehrfachtests ist nur informativ.
   fehlt -> Marge scheinbar < 1). Deshalb wird Vollstaendigkeit geprueft und
   `skipped_incomplete` gezaehlt statt still geschluckt.
 - Reale Margen liegen meist bei **1–3 %**.
+- **Value Betting ist KEINE Arbitrage:** es traegt echtes Risiko (kein Hedge),
+  und seine Signale sind nur so gut wie das faire-Wahrscheinlichkeits-Modell.
+  Deshalb parkt `validation.judge` Value-Signale ohne Out-of-Sample-Beleg, statt
+  sie zu bestaetigen.
 
 ## Echte Daten anbinden (spaeter, mit Lizenz)
 

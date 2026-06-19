@@ -42,6 +42,19 @@ def test_value_respektiert_vollstaendigkeit():
     assert get("value").evaluate(_snap(voll_aber_fehlend, expected=3)) == []   # Ausgang fehlt
 
 
+def test_value_end_to_end_ueber_fixture():
+    # Provider -> normalize -> value: die konstruierten Value-Faelle tauchen auf
+    # (mit normalisierten Namen), und alles ist kind="value".
+    from arbfinder.detector import detect
+    from arbfinder.providers import MockProvider
+
+    res = detect(MockProvider("fixtures/recorded_odds.jsonl"), strategy_name="value")
+    found = {(s.event_name, s.meta["outcome"]) for s in res.signals}
+    assert ("Bayern Munich v Dortmund", "Bayern Munich") in found   # v1: Value auf Bayern
+    assert ("Nadal v Federer", "Federer") in found                  # v2: Value auf Federer
+    assert all(s.kind == "value" for s in res.signals)
+
+
 def test_value_edge_formel():
     # Kontrolliert: A best=2.4, Konsens (B1,B2) fair A=0.5 -> edge = 2.4*0.5-1 = 20%
     odds = {"A": {"B1": 2.0, "B2": 2.0, "JUICY": 2.4}, "B": {"B1": 2.0, "B2": 2.0, "JUICY": 1.7}}
