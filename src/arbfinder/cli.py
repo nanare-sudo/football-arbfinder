@@ -181,13 +181,14 @@ def _cmd_backfill(args: argparse.Namespace) -> int:
             provider,
             start=parse_datetime(args.start), end=parse_datetime(args.end),
             interval_minutes=args.interval, out_path=args.out,
-            max_snapshots=args.max_snapshots,
+            max_snapshots=args.max_snapshots, max_credits=args.max_credits,
         )
-    except (ValueError, ProviderError) as exc:    # u.a. ueber max_snapshots -> klare Meldung
+    except (ValueError, ProviderError) as exc:    # max_snapshots/max_credits/Datum -> klare Meldung
         print(f"Backfill abgebrochen: {exc}")
         return 1
     print(f"Backfill: {stats.snapshots} Snapshots, {stats.rows} Zeilen, "
-          f"{stats.skipped} uebersprungen -> {args.out} | "
+          f"{stats.skipped} Snapshots uebersprungen, {stats.skipped_events} Events verworfen "
+          f"-> {args.out} | verbraucht ~{stats.spent_credits} Credits, "
           f"Kontingent verbleibend: {stats.credits_remaining}")
     return 0
 
@@ -249,7 +250,9 @@ def build_parser() -> argparse.ArgumentParser:
     bf.add_argument("--regions", default="eu")
     bf.add_argument("--markets", default="h2h")
     bf.add_argument("--max-snapshots", dest="max_snapshots", type=int, default=100,
-                    help="Sicherheits-Obergrenze; bewusst erhoehen fuer grosse (teure) Laeufe")
+                    help="Obergrenze Snapshot-Anzahl; bewusst erhoehen fuer grosse Laeufe")
+    bf.add_argument("--max-credits", dest="max_credits", type=int, default=1000,
+                    help="Obergrenze geschaetzte Credits (faengt viele Markets/Regions ab)")
     bf.set_defaults(func=_cmd_backfill)
 
     return p

@@ -37,8 +37,9 @@ logger = logging.getLogger("arbfinder.backfill")
 
 # Historischer Endpoint kostet ~10x Credits pro Call.
 HISTORICAL_CREDIT_MULTIPLIER = 10
-# Standard-Obergrenze gegen versehentliches Verbrennen des Kontingents.
+# Standard-Obergrenzen gegen versehentliches Verbrennen des Kontingents.
 DEFAULT_MAX_SNAPSHOTS = 100
+DEFAULT_MAX_CREDITS = 1000
 
 
 @dataclass
@@ -48,7 +49,9 @@ class BackfillStats:
     snapshots: int             # erfolgreich geholte Snapshots
     rows: int                  # geschriebene Zeilen
     skipped: int               # fehlgeschlagene Snapshots (skip-and-log)
+    skipped_events: int        # einzelne Events, die beim Serialisieren scheiterten
     estimated_credits: int     # vorab geschaetzte Kosten
+    spent_credits: int         # tatsaechlich verbrauchte Credits (Summe x-requests-last)
     credits_remaining: str | None
     credits_used: str | None
 
@@ -74,15 +77,18 @@ def backfill(
     interval_minutes: float,
     out_path: str | Path,
     max_snapshots: int | None = DEFAULT_MAX_SNAPSHOTS,
+    max_credits: int | None = DEFAULT_MAX_CREDITS,
 ) -> BackfillStats:
     """Zieht historische Snapshots ueber [start, end] und haengt sie an ``out_path``.
 
     ``start``, ``end`` und ``interval_minutes`` sind PFLICHT (keyword-only, keine
     Defaults) — bewusst, damit niemand versehentlich einen riesigen Zeitraum
     abfragt. Die geschaetzten Credits werden vor dem ersten Call geloggt; uebersteigt
-    der Lauf ``max_snapshots``, bricht er VOR jedem Call mit klarer Meldung ab
-    (bewusst ``max_snapshots`` erhoehen, um es wirklich zu tun). Append-only,
-    robust gegen einzelne fehlerhafte Antworten (skip-and-log).
+    der Lauf ``max_snapshots`` (Anzahl Snapshots) ODER ``max_credits`` (geschaetzte
+    Kosten — wichtig bei vielen Markets/Regions!), bricht er VOR jedem Call mit
+    klarer Meldung ab (Limit bewusst erhoehen, um es wirklich zu tun). Append-only,
+    robust gegen einzelne fehlerhafte Antworten (skip-and-log). Der tatsaechliche
+    Verbrauch (Summe x-requests-last) wird mitgezaehlt und zurueckgegeben.
     """
     stamps = _timestamps(start, end, interval_minutes)
     n_markets = max(1, len([m for m in provider.markets.split(",") if m]))
@@ -100,8 +106,16 @@ def backfill(
             f"Backfill umfasst {len(stamps)} Snapshots > max_snapshots={max_snapshots} "
             f"(~{est} Credits). Erhoehe max_snapshots bewusst, um das wirklich zu tun."
         )
+    if max_credits is not None and est > max_credits:
+        # WICHTIG: deckt den Fall ab, dass wenige Snapshots * viele Markets/Regions
+        # trotzdem teuer sind — die Snapshot-Anzahl allein waere kein Schutz.
+        raise ValueError(
+            f"Backfill schaetzt ~{est} Credits > max_credits={max_credits} "
+            f"({len(stamps)} Snapshots x {n_markets} Markets x {n_regions} Regions x "
+            f"{HISTORICAL_CREDIT_MULTIPLIER}). Erhoehe max_credits bewusst, um das wirklich zu tun."
+        )
 
-    snapshots = rows = skipped = 0
+    snapshots = rows = skipped = skipped_events = spent = 0
     for ts in stamps:
         try:
             events, snap_ts = provider.fetch_historical(ts)
@@ -117,9 +131,15 @@ def backfill(
             try:
                 batch.extend(_event_rows(ev, queried_at))
             except Exception as exc:  # noqa: BLE001
+                skipped_events += 1
                 logger.warning("Event uebersprungen (Serialisierung): %s", exc)
         rows += append_jsonl(out_path, batch)
 
+        last = (provider.last_quota or {}).get("last")          # echte Kosten dieses Calls
+        try:
+            spent += int(last) if last is not None else 0
+        except (TypeError, ValueError):
+            pass
         remaining = (provider.last_quota or {}).get("remaining")
         if remaining is not None and str(remaining) == "0":
             logger.warning("API-Kontingent erschoepft (remaining=0) — Backfill bricht ab.")
@@ -127,8 +147,9 @@ def backfill(
 
     quota = provider.last_quota or {}
     logger.info(
-        "Backfill fertig: %d Snapshots, %d Zeilen, %d uebersprungen | Kontingent %s",
-        snapshots, rows, skipped, quota or "unbekannt",
+        "Backfill fertig: %d Snapshots, %d Zeilen, %d uebersprungen (Snapshots), "
+        "%d Events verworfen | verbraucht ~%d Credits | Kontingent %s",
+        snapshots, rows, skipped, skipped_events, spent, quota or "unbekannt",
     )
-    return BackfillStats(snapshots, rows, skipped, est,
+    return BackfillStats(snapshots, rows, skipped, skipped_events, est, spent,
                          quota.get("remaining"), quota.get("used"))

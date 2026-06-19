@@ -1,5 +1,7 @@
 import json
 
+import pytest
+
 from arbfinder import cli
 
 
@@ -58,3 +60,33 @@ def test_compare_ueberspringt_strategiewechsel(capsys):
     assert "Kein Vergleich" in out
     assert "Vergleich zum letzten Lauf" not in out   # kein irrefuehrender Zahlenvergleich
     assert "WARNUNG" not in out                       # und kein Fehlalarm
+
+
+# --------------------------------------------------------------------------- #
+# backfill-Subcommand (gemockt, kein Netzwerk)
+# --------------------------------------------------------------------------- #
+def test_backfill_cli_pflichtargumente_fehlend_fehler():
+    # --interval fehlt -> argparse beendet mit SystemExit (Code 2).
+    with pytest.raises(SystemExit):
+        cli.build_parser().parse_args(
+            ["backfill", "--sport", "soccer_epl", "--from", "2024-08-01T12:00:00Z",
+             "--to", "2024-08-01T13:00:00Z"])
+
+
+def test_backfill_cli_ohne_key_exit_1(capsys, monkeypatch):
+    monkeypatch.delenv("ODDS_API_KEY", raising=False)
+    rc = cli.main(["backfill", "--sport", "soccer_epl",
+                   "--from", "2024-08-01T12:00:00Z", "--to", "2024-08-01T13:00:00Z",
+                   "--interval", "10"])
+    assert rc == 1
+    assert "ODDS_API_KEY" in capsys.readouterr().out          # klare Meldung, kein Traceback
+
+
+def test_backfill_cli_zu_grosser_lauf_wird_abgebrochen(capsys, monkeypatch):
+    # Dummy-Key -> Provider gebaut, aber der Lauf bricht VOR jedem Call ab (kein Netz).
+    monkeypatch.setenv("ODDS_API_KEY", "dummy")
+    rc = cli.main(["backfill", "--sport", "soccer_epl",
+                   "--from", "2024-08-01T00:00:00Z", "--to", "2024-08-02T00:00:00Z",
+                   "--interval", "1", "--max-snapshots", "10"])
+    assert rc == 1
+    assert "Backfill abgebrochen" in capsys.readouterr().out
