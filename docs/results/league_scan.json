@@ -1,0 +1,1985 @@
+{
+  "meta": {
+    "csv_dir": "data/leagues",
+    "n_files_loaded": 85,
+    "loaded_files": [
+      "B1_2021.csv",
+      "B1_2122.csv",
+      "B1_2223.csv",
+      "B1_2324.csv",
+      "B1_2425.csv",
+      "D2_2021.csv",
+      "D2_2122.csv",
+      "D2_2223.csv",
+      "D2_2324.csv",
+      "D2_2425.csv",
+      "E1_2021.csv",
+      "E1_2122.csv",
+      "E1_2223.csv",
+      "E1_2324.csv",
+      "E1_2425.csv",
+      "E2_2021.csv",
+      "E2_2122.csv",
+      "E2_2223.csv",
+      "E2_2324.csv",
+      "E2_2425.csv",
+      "E3_2021.csv",
+      "E3_2122.csv",
+      "E3_2223.csv",
+      "E3_2324.csv",
+      "E3_2425.csv",
+      "EC_2021.csv",
+      "EC_2122.csv",
+      "EC_2223.csv",
+      "EC_2324.csv",
+      "EC_2425.csv",
+      "F2_2021.csv",
+      "F2_2122.csv",
+      "F2_2223.csv",
+      "F2_2324.csv",
+      "F2_2425.csv",
+      "G1_2021.csv",
+      "G1_2122.csv",
+      "G1_2223.csv",
+      "G1_2324.csv",
+      "G1_2425.csv",
+      "I2_2021.csv",
+      "I2_2122.csv",
+      "I2_2223.csv",
+      "I2_2324.csv",
+      "I2_2425.csv",
+      "N1_2021.csv",
+      "N1_2122.csv",
+      "N1_2223.csv",
+      "N1_2324.csv",
+      "N1_2425.csv",
+      "P1_2021.csv",
+      "P1_2122.csv",
+      "P1_2223.csv",
+      "P1_2324.csv",
+      "P1_2425.csv",
+      "SC0_2021.csv",
+      "SC0_2122.csv",
+      "SC0_2223.csv",
+      "SC0_2324.csv",
+      "SC0_2425.csv",
+      "SC1_2021.csv",
+      "SC1_2122.csv",
+      "SC1_2223.csv",
+      "SC1_2324.csv",
+      "SC1_2425.csv",
+      "SC2_2021.csv",
+      "SC2_2122.csv",
+      "SC2_2223.csv",
+      "SC2_2324.csv",
+      "SC2_2425.csv",
+      "SC3_2021.csv",
+      "SC3_2122.csv",
+      "SC3_2223.csv",
+      "SC3_2324.csv",
+      "SC3_2425.csv",
+      "SP2_2021.csv",
+      "SP2_2122.csv",
+      "SP2_2223.csv",
+      "SP2_2324.csv",
+      "SP2_2425.csv",
+      "T1_2021.csv",
+      "T1_2122.csv",
+      "T1_2223.csv",
+      "T1_2324.csv",
+      "T1_2425.csv"
+    ],
+    "n_leagues": 17,
+    "n_files_skipped": 0,
+    "skipped_files": [],
+    "bet_source": "B365",
+    "anchor": "open",
+    "clv_benchmark": "pinnacle_close_devigged",
+    "odds_filter": [
+      2.0,
+      4.0
+    ],
+    "min_edge": 2.0,
+    "robust_criteria": {
+      "min_mean_clv_pct": 0.5,
+      "min_share_positive_pct": 55.0,
+      "min_bets": 50,
+      "min_positive_buckets": 2,
+      "min_bucket_n": 10
+    },
+    "leagues_scanned": [
+      "B1",
+      "D2",
+      "E1",
+      "E2",
+      "E3",
+      "EC",
+      "F2",
+      "G1",
+      "I2",
+      "N1",
+      "P1",
+      "SC0",
+      "SC1",
+      "SC2",
+      "SC3",
+      "SP2",
+      "T1"
+    ],
+    "date_range": [
+      "2020-08-01",
+      "2025-06-01"
+    ]
+  },
+  "leagues": {
+    "B1": {
+      "league": "B1",
+      "n_events": 1542,
+      "n_bets": 46,
+      "n_settled": 46,
+      "n_with_clv": 46,
+      "clv": {
+        "share_positive_pct": 43.5,
+        "mean_clv_pct": -1.945,
+        "median_clv_pct": -1.527,
+        "n": 46,
+        "distribution_buckets": [
+          {
+            "bucket": "<-5",
+            "n": 14
+          },
+          {
+            "bucket": "-5..-2",
+            "n": 8
+          },
+          {
+            "bucket": "-2..0",
+            "n": 4
+          },
+          {
+            "bucket": "0..2",
+            "n": 5
+          },
+          {
+            "bucket": "2..5",
+            "n": 5
+          },
+          {
+            "bucket": ">5",
+            "n": 10
+          }
+        ]
+      },
+      "pnl_flat": {
+        "start": 100.0,
+        "end_capital": 90.65,
+        "roi_turnover_pct": -20.326,
+        "max_drawdown_pct": 10.9,
+        "hit_rate_pct": 21.74,
+        "ruin": {
+          "ruined": false,
+          "date": null,
+          "idx": null
+        }
+      },
+      "pnl_kelly": {
+        "start": 100.0,
+        "end_capital": 98.12,
+        "roi_turnover_pct": -11.004,
+        "max_drawdown_pct": 3.28,
+        "hit_rate_pct": 21.74,
+        "ruin": {
+          "ruined": false,
+          "date": null,
+          "idx": null
+        }
+      },
+      "by_odds_bucket": [
+        {
+          "bucket": "2.5-3.0",
+          "n_bets": 1,
+          "clv_mean_pct": -1.061,
+          "pnl": -1.0,
+          "roi_pct": -100.0
+        },
+        {
+          "bucket": "3.0-3.5",
+          "n_bets": 10,
+          "clv_mean_pct": -3.242,
+          "pnl": -6.9,
+          "roi_pct": -69.0
+        },
+        {
+          "bucket": "3.5+",
+          "n_bets": 35,
+          "clv_mean_pct": -1.599,
+          "pnl": -1.45,
+          "roi_pct": -4.143
+        }
+      ],
+      "odds_filter_diag": {
+        "n_edge_pass": 120,
+        "n_edge_in_range": 46,
+        "n_edge_below_range": 0,
+        "n_edge_above_range": 74
+      },
+      "robust": false,
+      "robust_reasons": [
+        "mean_clv -1.945% < 0.5% (nicht deutlich >0)",
+        "share_positive 43.5% <= 55.0%",
+        "n_with_clv 46 < 50 (Stichprobe zu klein)",
+        "CLV positiv in 0 von 2 besetzten Buckets (<2 -> evtl. nur ein Bucket)"
+      ]
+    },
+    "D2": {
+      "league": "D2",
+      "n_events": 1530,
+      "n_bets": 46,
+      "n_settled": 46,
+      "n_with_clv": 46,
+      "clv": {
+        "share_positive_pct": 39.1,
+        "mean_clv_pct": -0.68,
+        "median_clv_pct": -1.542,
+        "n": 46,
+        "distribution_buckets": [
+          {
+            "bucket": "<-5",
+            "n": 13
+          },
+          {
+            "bucket": "-5..-2",
+            "n": 9
+          },
+          {
+            "bucket": "-2..0",
+            "n": 6
+          },
+          {
+            "bucket": "0..2",
+            "n": 4
+          },
+          {
+            "bucket": "2..5",
+            "n": 4
+          },
+          {
+            "bucket": ">5",
+            "n": 10
+          }
+        ]
+      },
+      "pnl_flat": {
+        "start": 100.0,
+        "end_capital": 99.33,
+        "roi_turnover_pct": -1.457,
+        "max_drawdown_pct": 6.94,
+        "hit_rate_pct": 28.26,
+        "ruin": {
+          "ruined": false,
+          "date": null,
+          "idx": null
+        }
+      },
+      "pnl_kelly": {
+        "start": 100.0,
+        "end_capital": 102.97,
+        "roi_turnover_pct": 15.692,
+        "max_drawdown_pct": 3.17,
+        "hit_rate_pct": 28.26,
+        "ruin": {
+          "ruined": false,
+          "date": null,
+          "idx": null
+        }
+      },
+      "by_odds_bucket": [
+        {
+          "bucket": "3.0-3.5",
+          "n_bets": 6,
+          "clv_mean_pct": -2.49,
+          "pnl": 0.5,
+          "roi_pct": 8.333
+        },
+        {
+          "bucket": "3.5+",
+          "n_bets": 38,
+          "clv_mean_pct": -0.541,
+          "pnl": -1.55,
+          "roi_pct": -4.079
+        },
+        {
+          "bucket": "<2.5",
+          "n_bets": 2,
+          "clv_mean_pct": 2.112,
+          "pnl": 0.38,
+          "roi_pct": 19.0
+        }
+      ],
+      "odds_filter_diag": {
+        "n_edge_pass": 88,
+        "n_edge_in_range": 46,
+        "n_edge_below_range": 1,
+        "n_edge_above_range": 41
+      },
+      "robust": false,
+      "robust_reasons": [
+        "mean_clv -0.68% < 0.5% (nicht deutlich >0)",
+        "share_positive 39.1% <= 55.0%",
+        "n_with_clv 46 < 50 (Stichprobe zu klein)",
+        "CLV positiv in 0 von 1 besetzten Buckets (<2 -> evtl. nur ein Bucket)"
+      ]
+    },
+    "E1": {
+      "league": "E1",
+      "n_events": 2760,
+      "n_bets": 44,
+      "n_settled": 44,
+      "n_with_clv": 44,
+      "clv": {
+        "share_positive_pct": 75.0,
+        "mean_clv_pct": 2.579,
+        "median_clv_pct": 2.74,
+        "n": 44,
+        "distribution_buckets": [
+          {
+            "bucket": "<-5",
+            "n": 2
+          },
+          {
+            "bucket": "-5..-2",
+            "n": 4
+          },
+          {
+            "bucket": "-2..0",
+            "n": 5
+          },
+          {
+            "bucket": "0..2",
+            "n": 6
+          },
+          {
+            "bucket": "2..5",
+            "n": 15
+          },
+          {
+            "bucket": ">5",
+            "n": 12
+          }
+        ]
+      },
+      "pnl_flat": {
+        "start": 100.0,
+        "end_capital": 96.8,
+        "roi_turnover_pct": -7.273,
+        "max_drawdown_pct": 13.41,
+        "hit_rate_pct": 27.27,
+        "ruin": {
+          "ruined": false,
+          "date": null,
+          "idx": null
+        }
+      },
+      "pnl_kelly": {
+        "start": 100.0,
+        "end_capital": 99.54,
+        "roi_turnover_pct": -3.026,
+        "max_drawdown_pct": 4.03,
+        "hit_rate_pct": 27.27,
+        "ruin": {
+          "ruined": false,
+          "date": null,
+          "idx": null
+        }
+      },
+      "by_odds_bucket": [
+        {
+          "bucket": "3.0-3.5",
+          "n_bets": 23,
+          "clv_mean_pct": 2.63,
+          "pnl": -0.35,
+          "roi_pct": -1.522
+        },
+        {
+          "bucket": "3.5+",
+          "n_bets": 21,
+          "clv_mean_pct": 2.523,
+          "pnl": -2.85,
+          "roi_pct": -13.571
+        }
+      ],
+      "odds_filter_diag": {
+        "n_edge_pass": 95,
+        "n_edge_in_range": 44,
+        "n_edge_below_range": 0,
+        "n_edge_above_range": 51
+      },
+      "robust": false,
+      "robust_reasons": [
+        "mean_clv 2.579% >= 0.5%",
+        "share_positive 75.0% > 55.0%",
+        "n_with_clv 44 < 50 (Stichprobe zu klein)",
+        "CLV positiv in 2 von 2 besetzten Buckets"
+      ]
+    },
+    "E2": {
+      "league": "E2",
+      "n_events": 2760,
+      "n_bets": 57,
+      "n_settled": 57,
+      "n_with_clv": 57,
+      "clv": {
+        "share_positive_pct": 61.4,
+        "mean_clv_pct": -0.268,
+        "median_clv_pct": 1.427,
+        "n": 57,
+        "distribution_buckets": [
+          {
+            "bucket": "<-5",
+            "n": 13
+          },
+          {
+            "bucket": "-5..-2",
+            "n": 2
+          },
+          {
+            "bucket": "-2..0",
+            "n": 7
+          },
+          {
+            "bucket": "0..2",
+            "n": 11
+          },
+          {
+            "bucket": "2..5",
+            "n": 15
+          },
+          {
+            "bucket": ">5",
+            "n": 9
+          }
+        ]
+      },
+      "pnl_flat": {
+        "start": 100.0,
+        "end_capital": 91.95,
+        "roi_turnover_pct": -14.123,
+        "max_drawdown_pct": 14.3,
+        "hit_rate_pct": 24.56,
+        "ruin": {
+          "ruined": false,
+          "date": null,
+          "idx": null
+        }
+      },
+      "pnl_kelly": {
+        "start": 100.0,
+        "end_capital": 97.32,
+        "roi_turnover_pct": -16.172,
+        "max_drawdown_pct": 4.6,
+        "hit_rate_pct": 24.56,
+        "ruin": {
+          "ruined": false,
+          "date": null,
+          "idx": null
+        }
+      },
+      "by_odds_bucket": [
+        {
+          "bucket": "2.5-3.0",
+          "n_bets": 1,
+          "clv_mean_pct": -0.062,
+          "pnl": 1.9,
+          "roi_pct": 190.0
+        },
+        {
+          "bucket": "3.0-3.5",
+          "n_bets": 13,
+          "clv_mean_pct": -0.72,
+          "pnl": 3.8,
+          "roi_pct": 29.231
+        },
+        {
+          "bucket": "3.5+",
+          "n_bets": 43,
+          "clv_mean_pct": -0.136,
+          "pnl": -13.75,
+          "roi_pct": -31.977
+        }
+      ],
+      "odds_filter_diag": {
+        "n_edge_pass": 142,
+        "n_edge_in_range": 57,
+        "n_edge_below_range": 0,
+        "n_edge_above_range": 85
+      },
+      "robust": false,
+      "robust_reasons": [
+        "mean_clv -0.268% < 0.5% (nicht deutlich >0)",
+        "share_positive 61.4% > 55.0%",
+        "n_with_clv 57 >= 50",
+        "CLV positiv in 0 von 2 besetzten Buckets (<2 -> evtl. nur ein Bucket)"
+      ]
+    },
+    "E3": {
+      "league": "E3",
+      "n_events": 2760,
+      "n_bets": 88,
+      "n_settled": 88,
+      "n_with_clv": 88,
+      "clv": {
+        "share_positive_pct": 54.5,
+        "mean_clv_pct": 0.794,
+        "median_clv_pct": 0.47,
+        "n": 88,
+        "distribution_buckets": [
+          {
+            "bucket": "<-5",
+            "n": 13
+          },
+          {
+            "bucket": "-5..-2",
+            "n": 16
+          },
+          {
+            "bucket": "-2..0",
+            "n": 11
+          },
+          {
+            "bucket": "0..2",
+            "n": 13
+          },
+          {
+            "bucket": "2..5",
+            "n": 14
+          },
+          {
+            "bucket": ">5",
+            "n": 21
+          }
+        ]
+      },
+      "pnl_flat": {
+        "start": 100.0,
+        "end_capital": 95.82,
+        "roi_turnover_pct": -4.75,
+        "max_drawdown_pct": 13.28,
+        "hit_rate_pct": 28.41,
+        "ruin": {
+          "ruined": false,
+          "date": null,
+          "idx": null
+        }
+      },
+      "pnl_kelly": {
+        "start": 100.0,
+        "end_capital": 99.3,
+        "roi_turnover_pct": -2.376,
+        "max_drawdown_pct": 4.59,
+        "hit_rate_pct": 28.41,
+        "ruin": {
+          "ruined": false,
+          "date": null,
+          "idx": null
+        }
+      },
+      "by_odds_bucket": [
+        {
+          "bucket": "2.5-3.0",
+          "n_bets": 3,
+          "clv_mean_pct": 5.839,
+          "pnl": -0.3,
+          "roi_pct": -10.0
+        },
+        {
+          "bucket": "3.0-3.5",
+          "n_bets": 50,
+          "clv_mean_pct": -0.343,
+          "pnl": -3.55,
+          "roi_pct": -7.1
+        },
+        {
+          "bucket": "3.5+",
+          "n_bets": 34,
+          "clv_mean_pct": 2.16,
+          "pnl": -1.7,
+          "roi_pct": -5.0
+        },
+        {
+          "bucket": "<2.5",
+          "n_bets": 1,
+          "clv_mean_pct": -3.991,
+          "pnl": 1.37,
+          "roi_pct": 137.0
+        }
+      ],
+      "odds_filter_diag": {
+        "n_edge_pass": 195,
+        "n_edge_in_range": 88,
+        "n_edge_below_range": 0,
+        "n_edge_above_range": 107
+      },
+      "robust": false,
+      "robust_reasons": [
+        "mean_clv 0.794% >= 0.5%",
+        "share_positive 54.5% <= 55.0%",
+        "n_with_clv 88 >= 50",
+        "CLV positiv in 1 von 2 besetzten Buckets (<2 -> evtl. nur ein Bucket)"
+      ]
+    },
+    "EC": {
+      "league": "EC",
+      "n_events": 2639,
+      "n_bets": 135,
+      "n_settled": 135,
+      "n_with_clv": 135,
+      "clv": {
+        "share_positive_pct": 59.3,
+        "mean_clv_pct": 1.949,
+        "median_clv_pct": 1.704,
+        "n": 135,
+        "distribution_buckets": [
+          {
+            "bucket": "<-5",
+            "n": 25
+          },
+          {
+            "bucket": "-5..-2",
+            "n": 17
+          },
+          {
+            "bucket": "-2..0",
+            "n": 13
+          },
+          {
+            "bucket": "0..2",
+            "n": 14
+          },
+          {
+            "bucket": "2..5",
+            "n": 24
+          },
+          {
+            "bucket": ">5",
+            "n": 42
+          }
+        ]
+      },
+      "pnl_flat": {
+        "start": 100.0,
+        "end_capital": 122.78,
+        "roi_turnover_pct": 16.874,
+        "max_drawdown_pct": 12.6,
+        "hit_rate_pct": 34.81,
+        "ruin": {
+          "ruined": false,
+          "date": null,
+          "idx": null
+        }
+      },
+      "pnl_kelly": {
+        "start": 100.0,
+        "end_capital": 112.57,
+        "roi_turnover_pct": 17.902,
+        "max_drawdown_pct": 8.74,
+        "hit_rate_pct": 34.81,
+        "ruin": {
+          "ruined": false,
+          "date": null,
+          "idx": null
+        }
+      },
+      "by_odds_bucket": [
+        {
+          "bucket": "2.5-3.0",
+          "n_bets": 11,
+          "clv_mean_pct": 2.816,
+          "pnl": 5.23,
+          "roi_pct": 47.545
+        },
+        {
+          "bucket": "3.0-3.5",
+          "n_bets": 42,
+          "clv_mean_pct": 0.741,
+          "pnl": 13.3,
+          "roi_pct": 31.667
+        },
+        {
+          "bucket": "3.5+",
+          "n_bets": 80,
+          "clv_mean_pct": 2.498,
+          "pnl": 4.15,
+          "roi_pct": 5.187
+        },
+        {
+          "bucket": "<2.5",
+          "n_bets": 2,
+          "clv_mean_pct": 0.551,
+          "pnl": 0.1,
+          "roi_pct": 5.0
+        }
+      ],
+      "odds_filter_diag": {
+        "n_edge_pass": 288,
+        "n_edge_in_range": 135,
+        "n_edge_below_range": 1,
+        "n_edge_above_range": 152
+      },
+      "robust": true,
+      "robust_reasons": [
+        "mean_clv 1.949% >= 0.5%",
+        "share_positive 59.3% > 55.0%",
+        "n_with_clv 135 >= 50",
+        "CLV positiv in 3 von 3 besetzten Buckets"
+      ]
+    },
+    "F2": {
+      "league": "F2",
+      "n_events": 1825,
+      "n_bets": 105,
+      "n_settled": 105,
+      "n_with_clv": 105,
+      "clv": {
+        "share_positive_pct": 65.7,
+        "mean_clv_pct": 1.083,
+        "median_clv_pct": 1.948,
+        "n": 105,
+        "distribution_buckets": [
+          {
+            "bucket": "<-5",
+            "n": 12
+          },
+          {
+            "bucket": "-5..-2",
+            "n": 17
+          },
+          {
+            "bucket": "-2..0",
+            "n": 7
+          },
+          {
+            "bucket": "0..2",
+            "n": 17
+          },
+          {
+            "bucket": "2..5",
+            "n": 32
+          },
+          {
+            "bucket": ">5",
+            "n": 20
+          }
+        ]
+      },
+      "pnl_flat": {
+        "start": 100.0,
+        "end_capital": 109.8,
+        "roi_turnover_pct": 9.333,
+        "max_drawdown_pct": 12.61,
+        "hit_rate_pct": 33.33,
+        "ruin": {
+          "ruined": false,
+          "date": null,
+          "idx": null
+        }
+      },
+      "pnl_kelly": {
+        "start": 100.0,
+        "end_capital": 104.57,
+        "roi_turnover_pct": 10.319,
+        "max_drawdown_pct": 3.6,
+        "hit_rate_pct": 33.33,
+        "ruin": {
+          "ruined": false,
+          "date": null,
+          "idx": null
+        }
+      },
+      "by_odds_bucket": [
+        {
+          "bucket": "3.0-3.5",
+          "n_bets": 83,
+          "clv_mean_pct": 1.192,
+          "pnl": 16.2,
+          "roi_pct": 19.518
+        },
+        {
+          "bucket": "3.5+",
+          "n_bets": 22,
+          "clv_mean_pct": 0.673,
+          "pnl": -6.4,
+          "roi_pct": -29.091
+        }
+      ],
+      "odds_filter_diag": {
+        "n_edge_pass": 140,
+        "n_edge_in_range": 105,
+        "n_edge_below_range": 0,
+        "n_edge_above_range": 35
+      },
+      "robust": true,
+      "robust_reasons": [
+        "mean_clv 1.083% >= 0.5%",
+        "share_positive 65.7% > 55.0%",
+        "n_with_clv 105 >= 50",
+        "CLV positiv in 2 von 2 besetzten Buckets"
+      ]
+    },
+    "G1": {
+      "league": "G1",
+      "n_events": 1193,
+      "n_bets": 87,
+      "n_settled": 87,
+      "n_with_clv": 87,
+      "clv": {
+        "share_positive_pct": 55.2,
+        "mean_clv_pct": 0.963,
+        "median_clv_pct": 1.767,
+        "n": 87,
+        "distribution_buckets": [
+          {
+            "bucket": "<-5",
+            "n": 16
+          },
+          {
+            "bucket": "-5..-2",
+            "n": 11
+          },
+          {
+            "bucket": "-2..0",
+            "n": 12
+          },
+          {
+            "bucket": "0..2",
+            "n": 7
+          },
+          {
+            "bucket": "2..5",
+            "n": 17
+          },
+          {
+            "bucket": ">5",
+            "n": 24
+          }
+        ]
+      },
+      "pnl_flat": {
+        "start": 100.0,
+        "end_capital": 96.35,
+        "roi_turnover_pct": -4.195,
+        "max_drawdown_pct": 12.48,
+        "hit_rate_pct": 28.74,
+        "ruin": {
+          "ruined": false,
+          "date": null,
+          "idx": null
+        }
+      },
+      "pnl_kelly": {
+        "start": 100.0,
+        "end_capital": 97.27,
+        "roi_turnover_pct": -6.464,
+        "max_drawdown_pct": 7.14,
+        "hit_rate_pct": 28.74,
+        "ruin": {
+          "ruined": false,
+          "date": null,
+          "idx": null
+        }
+      },
+      "by_odds_bucket": [
+        {
+          "bucket": "2.5-3.0",
+          "n_bets": 1,
+          "clv_mean_pct": 4.716,
+          "pnl": 1.8,
+          "roi_pct": 180.0
+        },
+        {
+          "bucket": "3.0-3.5",
+          "n_bets": 65,
+          "clv_mean_pct": 1.763,
+          "pnl": -14.35,
+          "roi_pct": -22.077
+        },
+        {
+          "bucket": "3.5+",
+          "n_bets": 21,
+          "clv_mean_pct": -1.692,
+          "pnl": 8.9,
+          "roi_pct": 42.381
+        }
+      ],
+      "odds_filter_diag": {
+        "n_edge_pass": 267,
+        "n_edge_in_range": 87,
+        "n_edge_below_range": 1,
+        "n_edge_above_range": 179
+      },
+      "robust": false,
+      "robust_reasons": [
+        "mean_clv 0.963% >= 0.5%",
+        "share_positive 55.2% > 55.0%",
+        "n_with_clv 87 >= 50",
+        "CLV positiv in 1 von 2 besetzten Buckets (<2 -> evtl. nur ein Bucket)"
+      ]
+    },
+    "I2": {
+      "league": "I2",
+      "n_events": 1900,
+      "n_bets": 87,
+      "n_settled": 87,
+      "n_with_clv": 87,
+      "clv": {
+        "share_positive_pct": 65.5,
+        "mean_clv_pct": 1.568,
+        "median_clv_pct": 1.614,
+        "n": 87,
+        "distribution_buckets": [
+          {
+            "bucket": "<-5",
+            "n": 7
+          },
+          {
+            "bucket": "-5..-2",
+            "n": 13
+          },
+          {
+            "bucket": "-2..0",
+            "n": 10
+          },
+          {
+            "bucket": "0..2",
+            "n": 15
+          },
+          {
+            "bucket": "2..5",
+            "n": 18
+          },
+          {
+            "bucket": ">5",
+            "n": 24
+          }
+        ]
+      },
+      "pnl_flat": {
+        "start": 100.0,
+        "end_capital": 104.25,
+        "roi_turnover_pct": 4.885,
+        "max_drawdown_pct": 9.11,
+        "hit_rate_pct": 32.18,
+        "ruin": {
+          "ruined": false,
+          "date": null,
+          "idx": null
+        }
+      },
+      "pnl_kelly": {
+        "start": 100.0,
+        "end_capital": 99.92,
+        "roi_turnover_pct": -0.253,
+        "max_drawdown_pct": 3.36,
+        "hit_rate_pct": 32.18,
+        "ruin": {
+          "ruined": false,
+          "date": null,
+          "idx": null
+        }
+      },
+      "by_odds_bucket": [
+        {
+          "bucket": "3.0-3.5",
+          "n_bets": 70,
+          "clv_mean_pct": 1.127,
+          "pnl": 10.3,
+          "roi_pct": 14.714
+        },
+        {
+          "bucket": "3.5+",
+          "n_bets": 17,
+          "clv_mean_pct": 3.385,
+          "pnl": -6.05,
+          "roi_pct": -35.588
+        }
+      ],
+      "odds_filter_diag": {
+        "n_edge_pass": 109,
+        "n_edge_in_range": 87,
+        "n_edge_below_range": 1,
+        "n_edge_above_range": 21
+      },
+      "robust": true,
+      "robust_reasons": [
+        "mean_clv 1.568% >= 0.5%",
+        "share_positive 65.5% > 55.0%",
+        "n_with_clv 87 >= 50",
+        "CLV positiv in 2 von 2 besetzten Buckets"
+      ]
+    },
+    "N1": {
+      "league": "N1",
+      "n_events": 1530,
+      "n_bets": 34,
+      "n_settled": 34,
+      "n_with_clv": 34,
+      "clv": {
+        "share_positive_pct": 70.6,
+        "mean_clv_pct": 1.425,
+        "median_clv_pct": 1.714,
+        "n": 34,
+        "distribution_buckets": [
+          {
+            "bucket": "<-5",
+            "n": 3
+          },
+          {
+            "bucket": "-5..-2",
+            "n": 3
+          },
+          {
+            "bucket": "-2..0",
+            "n": 4
+          },
+          {
+            "bucket": "0..2",
+            "n": 8
+          },
+          {
+            "bucket": "2..5",
+            "n": 7
+          },
+          {
+            "bucket": ">5",
+            "n": 9
+          }
+        ]
+      },
+      "pnl_flat": {
+        "start": 100.0,
+        "end_capital": 117.9,
+        "roi_turnover_pct": 52.647,
+        "max_drawdown_pct": 8.38,
+        "hit_rate_pct": 41.18,
+        "ruin": {
+          "ruined": false,
+          "date": null,
+          "idx": null
+        }
+      },
+      "pnl_kelly": {
+        "start": 100.0,
+        "end_capital": 104.48,
+        "roi_turnover_pct": 40.523,
+        "max_drawdown_pct": 3.29,
+        "hit_rate_pct": 41.18,
+        "ruin": {
+          "ruined": false,
+          "date": null,
+          "idx": null
+        }
+      },
+      "by_odds_bucket": [
+        {
+          "bucket": "3.0-3.5",
+          "n_bets": 4,
+          "clv_mean_pct": -4.678,
+          "pnl": 2.6,
+          "roi_pct": 65.0
+        },
+        {
+          "bucket": "3.5+",
+          "n_bets": 30,
+          "clv_mean_pct": 2.239,
+          "pnl": 15.3,
+          "roi_pct": 51.0
+        }
+      ],
+      "odds_filter_diag": {
+        "n_edge_pass": 234,
+        "n_edge_in_range": 34,
+        "n_edge_below_range": 0,
+        "n_edge_above_range": 200
+      },
+      "robust": false,
+      "robust_reasons": [
+        "mean_clv 1.425% >= 0.5%",
+        "share_positive 70.6% > 55.0%",
+        "n_with_clv 34 < 50 (Stichprobe zu klein)",
+        "CLV positiv in 1 von 1 besetzten Buckets (<2 -> evtl. nur ein Bucket)"
+      ]
+    },
+    "P1": {
+      "league": "P1",
+      "n_events": 1530,
+      "n_bets": 36,
+      "n_settled": 36,
+      "n_with_clv": 36,
+      "clv": {
+        "share_positive_pct": 61.1,
+        "mean_clv_pct": 1.656,
+        "median_clv_pct": 0.933,
+        "n": 36,
+        "distribution_buckets": [
+          {
+            "bucket": "<-5",
+            "n": 5
+          },
+          {
+            "bucket": "-5..-2",
+            "n": 6
+          },
+          {
+            "bucket": "-2..0",
+            "n": 3
+          },
+          {
+            "bucket": "0..2",
+            "n": 5
+          },
+          {
+            "bucket": "2..5",
+            "n": 8
+          },
+          {
+            "bucket": ">5",
+            "n": 9
+          }
+        ]
+      },
+      "pnl_flat": {
+        "start": 100.0,
+        "end_capital": 86.7,
+        "roi_turnover_pct": -36.944,
+        "max_drawdown_pct": 13.95,
+        "hit_rate_pct": 19.44,
+        "ruin": {
+          "ruined": false,
+          "date": null,
+          "idx": null
+        }
+      },
+      "pnl_kelly": {
+        "start": 100.0,
+        "end_capital": 96.37,
+        "roi_turnover_pct": -27.78,
+        "max_drawdown_pct": 4.16,
+        "hit_rate_pct": 19.44,
+        "ruin": {
+          "ruined": false,
+          "date": null,
+          "idx": null
+        }
+      },
+      "by_odds_bucket": [
+        {
+          "bucket": "3.0-3.5",
+          "n_bets": 30,
+          "clv_mean_pct": 1.697,
+          "pnl": -7.3,
+          "roi_pct": -24.333
+        },
+        {
+          "bucket": "3.5+",
+          "n_bets": 6,
+          "clv_mean_pct": 1.449,
+          "pnl": -6.0,
+          "roi_pct": -100.0
+        }
+      ],
+      "odds_filter_diag": {
+        "n_edge_pass": 89,
+        "n_edge_in_range": 36,
+        "n_edge_below_range": 1,
+        "n_edge_above_range": 52
+      },
+      "robust": false,
+      "robust_reasons": [
+        "mean_clv 1.656% >= 0.5%",
+        "share_positive 61.1% > 55.0%",
+        "n_with_clv 36 < 50 (Stichprobe zu klein)",
+        "CLV positiv in 1 von 1 besetzten Buckets (<2 -> evtl. nur ein Bucket)"
+      ]
+    },
+    "SC0": {
+      "league": "SC0",
+      "n_events": 1140,
+      "n_bets": 22,
+      "n_settled": 22,
+      "n_with_clv": 22,
+      "clv": {
+        "share_positive_pct": 59.1,
+        "mean_clv_pct": 1.061,
+        "median_clv_pct": 2.171,
+        "n": 22,
+        "distribution_buckets": [
+          {
+            "bucket": "<-5",
+            "n": 2
+          },
+          {
+            "bucket": "-5..-2",
+            "n": 3
+          },
+          {
+            "bucket": "-2..0",
+            "n": 4
+          },
+          {
+            "bucket": "0..2",
+            "n": 1
+          },
+          {
+            "bucket": "2..5",
+            "n": 7
+          },
+          {
+            "bucket": ">5",
+            "n": 5
+          }
+        ]
+      },
+      "pnl_flat": {
+        "start": 100.0,
+        "end_capital": 99.25,
+        "roi_turnover_pct": -3.409,
+        "max_drawdown_pct": 4.25,
+        "hit_rate_pct": 27.27,
+        "ruin": {
+          "ruined": false,
+          "date": null,
+          "idx": null
+        }
+      },
+      "pnl_kelly": {
+        "start": 100.0,
+        "end_capital": 94.02,
+        "roi_turnover_pct": -52.227,
+        "max_drawdown_pct": 6.27,
+        "hit_rate_pct": 27.27,
+        "ruin": {
+          "ruined": false,
+          "date": null,
+          "idx": null
+        }
+      },
+      "by_odds_bucket": [
+        {
+          "bucket": "3.0-3.5",
+          "n_bets": 9,
+          "clv_mean_pct": -0.874,
+          "pnl": -5.7,
+          "roi_pct": -63.333
+        },
+        {
+          "bucket": "3.5+",
+          "n_bets": 12,
+          "clv_mean_pct": 2.386,
+          "pnl": 5.95,
+          "roi_pct": 49.583
+        },
+        {
+          "bucket": "<2.5",
+          "n_bets": 1,
+          "clv_mean_pct": 2.569,
+          "pnl": -1.0,
+          "roi_pct": -100.0
+        }
+      ],
+      "odds_filter_diag": {
+        "n_edge_pass": 102,
+        "n_edge_in_range": 22,
+        "n_edge_below_range": 0,
+        "n_edge_above_range": 80
+      },
+      "robust": false,
+      "robust_reasons": [
+        "mean_clv 1.061% >= 0.5%",
+        "share_positive 59.1% > 55.0%",
+        "n_with_clv 22 < 50 (Stichprobe zu klein)",
+        "CLV positiv in 1 von 1 besetzten Buckets (<2 -> evtl. nur ein Bucket)"
+      ]
+    },
+    "SC1": {
+      "league": "SC1",
+      "n_events": 855,
+      "n_bets": 29,
+      "n_settled": 29,
+      "n_with_clv": 29,
+      "clv": {
+        "share_positive_pct": 86.2,
+        "mean_clv_pct": 3.279,
+        "median_clv_pct": 4.114,
+        "n": 29,
+        "distribution_buckets": [
+          {
+            "bucket": "<-5",
+            "n": 3
+          },
+          {
+            "bucket": "-5..-2",
+            "n": 0
+          },
+          {
+            "bucket": "-2..0",
+            "n": 1
+          },
+          {
+            "bucket": "0..2",
+            "n": 4
+          },
+          {
+            "bucket": "2..5",
+            "n": 12
+          },
+          {
+            "bucket": ">5",
+            "n": 9
+          }
+        ]
+      },
+      "pnl_flat": {
+        "start": 100.0,
+        "end_capital": 88.8,
+        "roi_turnover_pct": -38.621,
+        "max_drawdown_pct": 14.22,
+        "hit_rate_pct": 17.24,
+        "ruin": {
+          "ruined": false,
+          "date": null,
+          "idx": null
+        }
+      },
+      "pnl_kelly": {
+        "start": 100.0,
+        "end_capital": 96.99,
+        "roi_turnover_pct": -27.11,
+        "max_drawdown_pct": 6.04,
+        "hit_rate_pct": 17.24,
+        "ruin": {
+          "ruined": false,
+          "date": null,
+          "idx": null
+        }
+      },
+      "by_odds_bucket": [
+        {
+          "bucket": "2.5-3.0",
+          "n_bets": 1,
+          "clv_mean_pct": 4.285,
+          "pnl": -1.0,
+          "roi_pct": -100.0
+        },
+        {
+          "bucket": "3.0-3.5",
+          "n_bets": 9,
+          "clv_mean_pct": 3.807,
+          "pnl": -5.8,
+          "roi_pct": -64.444
+        },
+        {
+          "bucket": "3.5+",
+          "n_bets": 18,
+          "clv_mean_pct": 3.653,
+          "pnl": -3.4,
+          "roi_pct": -18.889
+        },
+        {
+          "bucket": "<2.5",
+          "n_bets": 1,
+          "clv_mean_pct": -9.216,
+          "pnl": -1.0,
+          "roi_pct": -100.0
+        }
+      ],
+      "odds_filter_diag": {
+        "n_edge_pass": 50,
+        "n_edge_in_range": 29,
+        "n_edge_below_range": 0,
+        "n_edge_above_range": 21
+      },
+      "robust": false,
+      "robust_reasons": [
+        "mean_clv 3.279% >= 0.5%",
+        "share_positive 86.2% > 55.0%",
+        "n_with_clv 29 < 50 (Stichprobe zu klein)",
+        "CLV positiv in 1 von 1 besetzten Buckets (<2 -> evtl. nur ein Bucket)"
+      ]
+    },
+    "SC2": {
+      "league": "SC2",
+      "n_events": 830,
+      "n_bets": 36,
+      "n_settled": 36,
+      "n_with_clv": 36,
+      "clv": {
+        "share_positive_pct": 61.1,
+        "mean_clv_pct": 0.953,
+        "median_clv_pct": 1.424,
+        "n": 36,
+        "distribution_buckets": [
+          {
+            "bucket": "<-5",
+            "n": 8
+          },
+          {
+            "bucket": "-5..-2",
+            "n": 3
+          },
+          {
+            "bucket": "-2..0",
+            "n": 3
+          },
+          {
+            "bucket": "0..2",
+            "n": 5
+          },
+          {
+            "bucket": "2..5",
+            "n": 2
+          },
+          {
+            "bucket": ">5",
+            "n": 15
+          }
+        ]
+      },
+      "pnl_flat": {
+        "start": 100.0,
+        "end_capital": 98.55,
+        "roi_turnover_pct": -4.028,
+        "max_drawdown_pct": 7.85,
+        "hit_rate_pct": 27.78,
+        "ruin": {
+          "ruined": false,
+          "date": null,
+          "idx": null
+        }
+      },
+      "pnl_kelly": {
+        "start": 100.0,
+        "end_capital": 103.46,
+        "roi_turnover_pct": 19.752,
+        "max_drawdown_pct": 2.66,
+        "hit_rate_pct": 27.78,
+        "ruin": {
+          "ruined": false,
+          "date": null,
+          "idx": null
+        }
+      },
+      "by_odds_bucket": [
+        {
+          "bucket": "2.5-3.0",
+          "n_bets": 1,
+          "clv_mean_pct": 6.745,
+          "pnl": 1.9,
+          "roi_pct": 190.0
+        },
+        {
+          "bucket": "3.0-3.5",
+          "n_bets": 8,
+          "clv_mean_pct": -0.318,
+          "pnl": 5.2,
+          "roi_pct": 65.0
+        },
+        {
+          "bucket": "3.5+",
+          "n_bets": 27,
+          "clv_mean_pct": 1.114,
+          "pnl": -8.55,
+          "roi_pct": -31.667
+        }
+      ],
+      "odds_filter_diag": {
+        "n_edge_pass": 68,
+        "n_edge_in_range": 36,
+        "n_edge_below_range": 0,
+        "n_edge_above_range": 32
+      },
+      "robust": false,
+      "robust_reasons": [
+        "mean_clv 0.953% >= 0.5%",
+        "share_positive 61.1% > 55.0%",
+        "n_with_clv 36 < 50 (Stichprobe zu klein)",
+        "CLV positiv in 1 von 1 besetzten Buckets (<2 -> evtl. nur ein Bucket)"
+      ]
+    },
+    "SC3": {
+      "league": "SC3",
+      "n_events": 830,
+      "n_bets": 50,
+      "n_settled": 50,
+      "n_with_clv": 50,
+      "clv": {
+        "share_positive_pct": 76.0,
+        "mean_clv_pct": 4.909,
+        "median_clv_pct": 4.68,
+        "n": 50,
+        "distribution_buckets": [
+          {
+            "bucket": "<-5",
+            "n": 6
+          },
+          {
+            "bucket": "-5..-2",
+            "n": 3
+          },
+          {
+            "bucket": "-2..0",
+            "n": 3
+          },
+          {
+            "bucket": "0..2",
+            "n": 2
+          },
+          {
+            "bucket": "2..5",
+            "n": 12
+          },
+          {
+            "bucket": ">5",
+            "n": 24
+          }
+        ]
+      },
+      "pnl_flat": {
+        "start": 100.0,
+        "end_capital": 117.02,
+        "roi_turnover_pct": 34.04,
+        "max_drawdown_pct": 5.07,
+        "hit_rate_pct": 38.0,
+        "ruin": {
+          "ruined": false,
+          "date": null,
+          "idx": null
+        }
+      },
+      "pnl_kelly": {
+        "start": 100.0,
+        "end_capital": 104.55,
+        "roi_turnover_pct": 19.235,
+        "max_drawdown_pct": 2.74,
+        "hit_rate_pct": 38.0,
+        "ruin": {
+          "ruined": false,
+          "date": null,
+          "idx": null
+        }
+      },
+      "by_odds_bucket": [
+        {
+          "bucket": "2.5-3.0",
+          "n_bets": 3,
+          "clv_mean_pct": 13.683,
+          "pnl": 2.67,
+          "roi_pct": 89.0
+        },
+        {
+          "bucket": "3.0-3.5",
+          "n_bets": 14,
+          "clv_mean_pct": 2.251,
+          "pnl": 2.5,
+          "roi_pct": 17.857
+        },
+        {
+          "bucket": "3.5+",
+          "n_bets": 33,
+          "clv_mean_pct": 5.24,
+          "pnl": 11.85,
+          "roi_pct": 35.909
+        }
+      ],
+      "odds_filter_diag": {
+        "n_edge_pass": 74,
+        "n_edge_in_range": 50,
+        "n_edge_below_range": 0,
+        "n_edge_above_range": 24
+      },
+      "robust": true,
+      "robust_reasons": [
+        "mean_clv 4.909% >= 0.5%",
+        "share_positive 76.0% > 55.0%",
+        "n_with_clv 50 >= 50",
+        "CLV positiv in 2 von 2 besetzten Buckets"
+      ]
+    },
+    "SP2": {
+      "league": "SP2",
+      "n_events": 2310,
+      "n_bets": 150,
+      "n_settled": 150,
+      "n_with_clv": 150,
+      "clv": {
+        "share_positive_pct": 64.7,
+        "mean_clv_pct": 1.069,
+        "median_clv_pct": 2.306,
+        "n": 150,
+        "distribution_buckets": [
+          {
+            "bucket": "<-5",
+            "n": 19
+          },
+          {
+            "bucket": "-5..-2",
+            "n": 22
+          },
+          {
+            "bucket": "-2..0",
+            "n": 12
+          },
+          {
+            "bucket": "0..2",
+            "n": 18
+          },
+          {
+            "bucket": "2..5",
+            "n": 37
+          },
+          {
+            "bucket": ">5",
+            "n": 42
+          }
+        ]
+      },
+      "pnl_flat": {
+        "start": 100.0,
+        "end_capital": 102.75,
+        "roi_turnover_pct": 1.833,
+        "max_drawdown_pct": 11.72,
+        "hit_rate_pct": 31.33,
+        "ruin": {
+          "ruined": false,
+          "date": null,
+          "idx": null
+        }
+      },
+      "pnl_kelly": {
+        "start": 100.0,
+        "end_capital": 100.11,
+        "roi_turnover_pct": 0.162,
+        "max_drawdown_pct": 6.52,
+        "hit_rate_pct": 31.33,
+        "ruin": {
+          "ruined": false,
+          "date": null,
+          "idx": null
+        }
+      },
+      "by_odds_bucket": [
+        {
+          "bucket": "2.5-3.0",
+          "n_bets": 13,
+          "clv_mean_pct": -0.241,
+          "pnl": -7.2,
+          "roi_pct": -55.385
+        },
+        {
+          "bucket": "3.0-3.5",
+          "n_bets": 116,
+          "clv_mean_pct": 1.761,
+          "pnl": 0.75,
+          "roi_pct": 0.647
+        },
+        {
+          "bucket": "3.5+",
+          "n_bets": 20,
+          "clv_mean_pct": -2.413,
+          "pnl": 10.2,
+          "roi_pct": 51.0
+        },
+        {
+          "bucket": "<2.5",
+          "n_bets": 1,
+          "clv_mean_pct": 7.522,
+          "pnl": -1.0,
+          "roi_pct": -100.0
+        }
+      ],
+      "odds_filter_diag": {
+        "n_edge_pass": 200,
+        "n_edge_in_range": 150,
+        "n_edge_below_range": 0,
+        "n_edge_above_range": 50
+      },
+      "robust": false,
+      "robust_reasons": [
+        "mean_clv 1.069% >= 0.5%",
+        "share_positive 64.7% > 55.0%",
+        "n_with_clv 150 >= 50",
+        "CLV positiv in 1 von 3 besetzten Buckets (<2 -> evtl. nur ein Bucket)"
+      ]
+    },
+    "T1": {
+      "league": "T1",
+      "n_events": 1864,
+      "n_bets": 58,
+      "n_settled": 58,
+      "n_with_clv": 58,
+      "clv": {
+        "share_positive_pct": 50.0,
+        "mean_clv_pct": 0.539,
+        "median_clv_pct": 0.11,
+        "n": 58,
+        "distribution_buckets": [
+          {
+            "bucket": "<-5",
+            "n": 10
+          },
+          {
+            "bucket": "-5..-2",
+            "n": 12
+          },
+          {
+            "bucket": "-2..0",
+            "n": 7
+          },
+          {
+            "bucket": "0..2",
+            "n": 8
+          },
+          {
+            "bucket": "2..5",
+            "n": 5
+          },
+          {
+            "bucket": ">5",
+            "n": 16
+          }
+        ]
+      },
+      "pnl_flat": {
+        "start": 100.0,
+        "end_capital": 103.42,
+        "roi_turnover_pct": 5.897,
+        "max_drawdown_pct": 6.0,
+        "hit_rate_pct": 31.03,
+        "ruin": {
+          "ruined": false,
+          "date": null,
+          "idx": null
+        }
+      },
+      "pnl_kelly": {
+        "start": 100.0,
+        "end_capital": 102.73,
+        "roi_turnover_pct": 11.627,
+        "max_drawdown_pct": 3.28,
+        "hit_rate_pct": 31.03,
+        "ruin": {
+          "ruined": false,
+          "date": null,
+          "idx": null
+        }
+      },
+      "by_odds_bucket": [
+        {
+          "bucket": "2.5-3.0",
+          "n_bets": 2,
+          "clv_mean_pct": 9.467,
+          "pnl": 0.62,
+          "roi_pct": 31.0
+        },
+        {
+          "bucket": "3.0-3.5",
+          "n_bets": 21,
+          "clv_mean_pct": 0.183,
+          "pnl": -1.5,
+          "roi_pct": -7.143
+        },
+        {
+          "bucket": "3.5+",
+          "n_bets": 34,
+          "clv_mean_pct": 0.112,
+          "pnl": 3.25,
+          "roi_pct": 9.559
+        },
+        {
+          "bucket": "<2.5",
+          "n_bets": 1,
+          "clv_mean_pct": 4.706,
+          "pnl": 1.05,
+          "roi_pct": 105.0
+        }
+      ],
+      "odds_filter_diag": {
+        "n_edge_pass": 107,
+        "n_edge_in_range": 58,
+        "n_edge_below_range": 0,
+        "n_edge_above_range": 49
+      },
+      "robust": false,
+      "robust_reasons": [
+        "mean_clv 0.539% >= 0.5%",
+        "share_positive 50.0% <= 55.0%",
+        "n_with_clv 58 >= 50",
+        "CLV positiv in 2 von 2 besetzten Buckets"
+      ]
+    }
+  },
+  "ranking": [
+    {
+      "league": "SC3",
+      "mean_clv_pct": 4.909,
+      "share_positive_clv_pct": 76.0,
+      "n_bets": 50,
+      "n_with_clv": 50,
+      "robust": true
+    },
+    {
+      "league": "SC1",
+      "mean_clv_pct": 3.279,
+      "share_positive_clv_pct": 86.2,
+      "n_bets": 29,
+      "n_with_clv": 29,
+      "robust": false
+    },
+    {
+      "league": "E1",
+      "mean_clv_pct": 2.579,
+      "share_positive_clv_pct": 75.0,
+      "n_bets": 44,
+      "n_with_clv": 44,
+      "robust": false
+    },
+    {
+      "league": "EC",
+      "mean_clv_pct": 1.949,
+      "share_positive_clv_pct": 59.3,
+      "n_bets": 135,
+      "n_with_clv": 135,
+      "robust": true
+    },
+    {
+      "league": "P1",
+      "mean_clv_pct": 1.656,
+      "share_positive_clv_pct": 61.1,
+      "n_bets": 36,
+      "n_with_clv": 36,
+      "robust": false
+    },
+    {
+      "league": "I2",
+      "mean_clv_pct": 1.568,
+      "share_positive_clv_pct": 65.5,
+      "n_bets": 87,
+      "n_with_clv": 87,
+      "robust": true
+    },
+    {
+      "league": "N1",
+      "mean_clv_pct": 1.425,
+      "share_positive_clv_pct": 70.6,
+      "n_bets": 34,
+      "n_with_clv": 34,
+      "robust": false
+    },
+    {
+      "league": "F2",
+      "mean_clv_pct": 1.083,
+      "share_positive_clv_pct": 65.7,
+      "n_bets": 105,
+      "n_with_clv": 105,
+      "robust": true
+    },
+    {
+      "league": "SP2",
+      "mean_clv_pct": 1.069,
+      "share_positive_clv_pct": 64.7,
+      "n_bets": 150,
+      "n_with_clv": 150,
+      "robust": false
+    },
+    {
+      "league": "SC0",
+      "mean_clv_pct": 1.061,
+      "share_positive_clv_pct": 59.1,
+      "n_bets": 22,
+      "n_with_clv": 22,
+      "robust": false
+    },
+    {
+      "league": "G1",
+      "mean_clv_pct": 0.963,
+      "share_positive_clv_pct": 55.2,
+      "n_bets": 87,
+      "n_with_clv": 87,
+      "robust": false
+    },
+    {
+      "league": "SC2",
+      "mean_clv_pct": 0.953,
+      "share_positive_clv_pct": 61.1,
+      "n_bets": 36,
+      "n_with_clv": 36,
+      "robust": false
+    },
+    {
+      "league": "E3",
+      "mean_clv_pct": 0.794,
+      "share_positive_clv_pct": 54.5,
+      "n_bets": 88,
+      "n_with_clv": 88,
+      "robust": false
+    },
+    {
+      "league": "T1",
+      "mean_clv_pct": 0.539,
+      "share_positive_clv_pct": 50.0,
+      "n_bets": 58,
+      "n_with_clv": 58,
+      "robust": false
+    },
+    {
+      "league": "E2",
+      "mean_clv_pct": -0.268,
+      "share_positive_clv_pct": 61.4,
+      "n_bets": 57,
+      "n_with_clv": 57,
+      "robust": false
+    },
+    {
+      "league": "D2",
+      "mean_clv_pct": -0.68,
+      "share_positive_clv_pct": 39.1,
+      "n_bets": 46,
+      "n_with_clv": 46,
+      "robust": false
+    },
+    {
+      "league": "B1",
+      "mean_clv_pct": -1.945,
+      "share_positive_clv_pct": 43.5,
+      "n_bets": 46,
+      "n_with_clv": 46,
+      "robust": false
+    }
+  ],
+  "verdict": {
+    "primary_signal": "CLV vs devigte Pinnacle-Schluss",
+    "any_robust": true,
+    "robust_leagues": [
+      "SC3",
+      "EC",
+      "I2",
+      "F2"
+    ],
+    "best_league": "SC3",
+    "best_basis": "robust",
+    "robust_criteria": {
+      "min_mean_clv_pct": 0.5,
+      "min_share_positive_pct": 55.0,
+      "min_bets": 50,
+      "min_positive_buckets": 2,
+      "min_bucket_n": 10
+    },
+    "summary": "4 Liga(en) mit ROBUSTEM positivem CLV gegen die devigte Pinnacle-Schluss: SC3, EC, I2, F2. Beste: SC3 (mean_clv 4.909%, positiv bei 76.0% der Wetten).",
+    "caveats": [
+      "Primaersignal ist CLV gegen die DEVIGTE Pinnacle-Schluss (faire no-vig Linie), nicht die rohe Schlussquote \u2014 das ist die haertere, ehrlichere Messlatte.",
+      "PnL (Bankroll/Drawdown/Ruin) ist SEKUNDAER und deutlich verrauschter als CLV.",
+      "Weniger liquide Ligen haben oft duennere/spaetere Pinnacle-Abdeckung; der Anker kann dort schwaecher sein (eine Schwaeche der Methode, kein Vorteil).",
+      "Bet-Quelle ist eine EINZELNE Quelle (kein Line-Shopping ueber mehrere Bookies).",
+      "Kosten/Steuern/Gebuehren und Buchmacher-LIMITS sind NICHT modelliert.",
+      "IN-SAMPLE: der Anker lernt nichts; CLV ist Vorlaufindikator, kein OOS-Beweis."
+    ]
+  }
+}

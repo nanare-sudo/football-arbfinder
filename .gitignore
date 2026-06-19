@@ -1,15 +1,17 @@
+# Python
 __pycache__/
 *.pyc
 .venv/
+venv/
 .env
 *.egg-info/
-results/*.png
-results/pinnacle_clv_run.json
-results/diagnosis.json
-results/league_scan.json
-results/best_league.json
-results/oos_clv.json
-results/oos_summary.json
-results/walkforward.json
-results/walkforward_summary.json
+.mypy_cache/
+.pytest_cache/
+
+# Raw licensed data — large and ToS-bound, NOT committed.
+# Fully reproducible with `python download_data.py` (known file URLs only).
 /data/
+
+# results/ is scratch output of the CLI and scripts/reproduce.sh.
+# Curated evidence referenced by the README is committed under docs/ instead.
+/results/

@@ -1,0 +1,170 @@
+{
+  "meta": {
+    "csv_dir": "data/leagues",
+    "bet_source": "B365",
+    "clv_benchmark": "pinnacle_close_devigged",
+    "odds_filter": [
+      2.0,
+      4.0
+    ],
+    "min_edge": 2.0,
+    "train_seasons": [
+      "2020/21",
+      "2021/22",
+      "2022/23",
+      "2023/24"
+    ],
+    "holdout_season": "2024/25",
+    "n_trials": 17,
+    "judge_params": {
+      "min_in_sample": 0.0,
+      "min_out_of_sample": 0.5,
+      "min_samples": 30
+    },
+    "candidates": [
+      "EC",
+      "I2",
+      "F2"
+    ],
+    "uncertain": [
+      "SC3"
+    ],
+    "skipped_files": []
+  },
+  "leagues": {
+    "EC": {
+      "league": "EC",
+      "uncertain": false,
+      "in_sample": {
+        "n_bets": 113,
+        "n_with_clv": 113,
+        "mean_clv_pct": 1.72,
+        "median_clv_pct": 1.534,
+        "share_positive_clv_pct": 56.6
+      },
+      "out_of_sample": {
+        "n_bets": 22,
+        "n_with_clv": 22,
+        "mean_clv_pct": 3.125,
+        "median_clv_pct": 3.018,
+        "share_positive_clv_pct": 72.7
+      },
+      "delta": {
+        "mean_clv_pct_drop": -1.405,
+        "out_stays_positive": true
+      },
+      "verdict": {
+        "status": "parked",
+        "reason": "vielversprechend, aber zu wenig Daten fuer OOS-Urteil",
+        "in_sample_edge": 1.72,
+        "out_of_sample_edge": 3.125,
+        "n_trials": 17,
+        "deflated_edge": 0.996,
+        "details": {
+          "n_samples": 22,
+          "min_samples": 30
+        }
+      }
+    },
+    "I2": {
+      "league": "I2",
+      "uncertain": false,
+      "in_sample": {
+        "n_bets": 56,
+        "n_with_clv": 56,
+        "mean_clv_pct": 1.844,
+        "median_clv_pct": 1.526,
+        "share_positive_clv_pct": 66.1
+      },
+      "out_of_sample": {
+        "n_bets": 31,
+        "n_with_clv": 31,
+        "mean_clv_pct": 1.069,
+        "median_clv_pct": 2.345,
+        "share_positive_clv_pct": 64.5
+      },
+      "delta": {
+        "mean_clv_pct_drop": 0.775,
+        "out_stays_positive": true
+      },
+      "verdict": {
+        "status": "confirmed",
+        "reason": "robust in- und out-of-sample",
+        "in_sample_edge": 1.844,
+        "out_of_sample_edge": 1.069,
+        "n_trials": 17,
+        "deflated_edge": 1.068,
+        "details": {}
+      }
+    },
+    "F2": {
+      "league": "F2",
+      "uncertain": false,
+      "in_sample": {
+        "n_bets": 99,
+        "n_with_clv": 99,
+        "mean_clv_pct": 1.096,
+        "median_clv_pct": 2.059,
+        "share_positive_clv_pct": 65.7
+      },
+      "out_of_sample": {
+        "n_bets": 6,
+        "n_with_clv": 6,
+        "mean_clv_pct": 0.876,
+        "median_clv_pct": 0.562,
+        "share_positive_clv_pct": 66.7
+      },
+      "delta": {
+        "mean_clv_pct_drop": 0.22,
+        "out_stays_positive": true
+      },
+      "verdict": {
+        "status": "parked",
+        "reason": "vielversprechend, aber zu wenig Daten fuer OOS-Urteil",
+        "in_sample_edge": 1.096,
+        "out_of_sample_edge": 0.876,
+        "n_trials": 17,
+        "deflated_edge": 0.635,
+        "details": {
+          "n_samples": 6,
+          "min_samples": 30
+        }
+      }
+    },
+    "SC3": {
+      "league": "SC3",
+      "uncertain": true,
+      "in_sample": {
+        "n_bets": 45,
+        "n_with_clv": 45,
+        "mean_clv_pct": 4.912,
+        "median_clv_pct": 5.425,
+        "share_positive_clv_pct": 73.3
+      },
+      "out_of_sample": {
+        "n_bets": 5,
+        "n_with_clv": 5,
+        "mean_clv_pct": 4.882,
+        "median_clv_pct": 4.397,
+        "share_positive_clv_pct": 100.0
+      },
+      "delta": {
+        "mean_clv_pct_drop": 0.03,
+        "out_stays_positive": true
+      },
+      "verdict": {
+        "status": "parked",
+        "reason": "vielversprechend, aber zu wenig Daten fuer OOS-Urteil",
+        "in_sample_edge": 4.912,
+        "out_of_sample_edge": 4.882,
+        "n_trials": 17,
+        "deflated_edge": 2.845,
+        "details": {
+          "n_samples": 5,
+          "min_samples": 30
+        }
+      }
+    }
+  },
+  "honest_note": "+1-2 % CLV ist ein DUENNES Signal, nah an der Schwelle, an der Buchmacher-Limits und ein real nicht erreichbarer weicher Preis es auffressen. Eine OOS-Bestaetigung hebt einen Kandidaten von 'in-sample-Artefakt' zu 'Kandidat fuer echten Edge' \u2014 aber Kosten/Limits bleiben UNMODELLIERT, und EINE Holdout-Saison ist nur EIN Test, kein Beweis. CLV gegen die DEVIGTE Pinnacle-Schluss ist die ehrlichste verfuegbare Messlatte; untere Ligen haben oft duenne/spaete Pinnacle-Abdeckung, was den Anker schwaecht."
+}

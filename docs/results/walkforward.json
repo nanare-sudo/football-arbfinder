@@ -1,0 +1,285 @@
+{
+  "meta": {
+    "csv_dir": "data/leagues",
+    "bet_source": "B365",
+    "clv_benchmark": "pinnacle_close_devigged",
+    "odds_filter": [
+      2.0,
+      4.0
+    ],
+    "min_edge": 2.0,
+    "season_order": [
+      "2020/21",
+      "2021/22",
+      "2022/23",
+      "2023/24",
+      "2024/25"
+    ],
+    "min_train_seasons": 3,
+    "n_trials": 17,
+    "judge_params": {
+      "min_in_sample": 0.0,
+      "min_out_of_sample": 0.5,
+      "min_samples": 30
+    },
+    "ci_method": "normal-approx 95% (z=1.96), Wetten als unabhaengig behandelt",
+    "candidates": [
+      "EC",
+      "I2",
+      "F2"
+    ],
+    "uncertain": [
+      "SC3"
+    ],
+    "skipped_files": []
+  },
+  "leagues": {
+    "EC": {
+      "league": "EC",
+      "uncertain": false,
+      "folds": [
+        {
+          "holdout_season": "2023/24",
+          "train_seasons": [
+            "2020/21",
+            "2021/22",
+            "2022/23"
+          ],
+          "n": 26,
+          "train_n": 87,
+          "mean_clv_pct": 1.871,
+          "median_clv_pct": -0.305,
+          "share_positive_clv_pct": 50.0
+        },
+        {
+          "holdout_season": "2024/25",
+          "train_seasons": [
+            "2020/21",
+            "2021/22",
+            "2022/23",
+            "2023/24"
+          ],
+          "n": 22,
+          "train_n": 113,
+          "mean_clv_pct": 3.125,
+          "median_clv_pct": 3.018,
+          "share_positive_clv_pct": 72.7
+        }
+      ],
+      "consistency": {
+        "positive_folds": 2,
+        "total_folds": 2,
+        "label": "2/2"
+      },
+      "in_sample_mean_clv_pct": 1.697,
+      "pooled_oos": {
+        "n": 48,
+        "mean_clv_pct": 2.446,
+        "median_clv_pct": 1.847,
+        "share_positive_clv_pct": 60.4,
+        "std": 7.762,
+        "standard_error": 1.12,
+        "ci95_low": 0.25,
+        "ci95_high": 4.641,
+        "ci_excludes_zero": true
+      },
+      "statistically_secured": true,
+      "verdict": {
+        "status": "confirmed",
+        "reason": "robust in- und out-of-sample",
+        "in_sample_edge": 1.6969422725692966,
+        "out_of_sample_edge": 2.446,
+        "n_trials": 17,
+        "deflated_edge": 0.983,
+        "details": {}
+      }
+    },
+    "I2": {
+      "league": "I2",
+      "uncertain": false,
+      "folds": [
+        {
+          "holdout_season": "2023/24",
+          "train_seasons": [
+            "2020/21",
+            "2021/22",
+            "2022/23"
+          ],
+          "n": 10,
+          "train_n": 46,
+          "mean_clv_pct": 3.191,
+          "median_clv_pct": 2.722,
+          "share_positive_clv_pct": 80.0
+        },
+        {
+          "holdout_season": "2024/25",
+          "train_seasons": [
+            "2020/21",
+            "2021/22",
+            "2022/23",
+            "2023/24"
+          ],
+          "n": 31,
+          "train_n": 56,
+          "mean_clv_pct": 1.069,
+          "median_clv_pct": 2.345,
+          "share_positive_clv_pct": 64.5
+        }
+      ],
+      "consistency": {
+        "positive_folds": 2,
+        "total_folds": 2,
+        "label": "2/2"
+      },
+      "in_sample_mean_clv_pct": 1.698,
+      "pooled_oos": {
+        "n": 41,
+        "mean_clv_pct": 1.586,
+        "median_clv_pct": 2.345,
+        "share_positive_clv_pct": 68.3,
+        "std": 6.694,
+        "standard_error": 1.045,
+        "ci95_low": -0.463,
+        "ci95_high": 3.635,
+        "ci_excludes_zero": false
+      },
+      "statistically_secured": false,
+      "verdict": {
+        "status": "confirmed",
+        "reason": "robust in- und out-of-sample",
+        "in_sample_edge": 1.6978957543326776,
+        "out_of_sample_edge": 1.586,
+        "n_trials": 17,
+        "deflated_edge": 0.983,
+        "details": {}
+      }
+    },
+    "F2": {
+      "league": "F2",
+      "uncertain": false,
+      "folds": [
+        {
+          "holdout_season": "2023/24",
+          "train_seasons": [
+            "2020/21",
+            "2021/22",
+            "2022/23"
+          ],
+          "n": 8,
+          "train_n": 91,
+          "mean_clv_pct": 4.472,
+          "median_clv_pct": 4.317,
+          "share_positive_clv_pct": 100.0
+        },
+        {
+          "holdout_season": "2024/25",
+          "train_seasons": [
+            "2020/21",
+            "2021/22",
+            "2022/23",
+            "2023/24"
+          ],
+          "n": 6,
+          "train_n": 99,
+          "mean_clv_pct": 0.876,
+          "median_clv_pct": 0.562,
+          "share_positive_clv_pct": 66.7
+        }
+      ],
+      "consistency": {
+        "positive_folds": 2,
+        "total_folds": 2,
+        "label": "2/2"
+      },
+      "in_sample_mean_clv_pct": 0.948,
+      "pooled_oos": {
+        "n": 14,
+        "mean_clv_pct": 2.931,
+        "median_clv_pct": 2.926,
+        "share_positive_clv_pct": 85.7,
+        "std": 3.6,
+        "standard_error": 0.962,
+        "ci95_low": 1.045,
+        "ci95_high": 4.817,
+        "ci_excludes_zero": true
+      },
+      "statistically_secured": false,
+      "verdict": {
+        "status": "parked",
+        "reason": "vielversprechend, aber zu wenig Daten fuer OOS-Urteil",
+        "in_sample_edge": 0.9475140271087421,
+        "out_of_sample_edge": 2.931,
+        "n_trials": 17,
+        "deflated_edge": 0.549,
+        "details": {
+          "n_samples": 14,
+          "min_samples": 30
+        }
+      }
+    },
+    "SC3": {
+      "league": "SC3",
+      "uncertain": true,
+      "folds": [
+        {
+          "holdout_season": "2023/24",
+          "train_seasons": [
+            "2020/21",
+            "2021/22",
+            "2022/23"
+          ],
+          "n": 20,
+          "train_n": 25,
+          "mean_clv_pct": 7.321,
+          "median_clv_pct": 8.458,
+          "share_positive_clv_pct": 85.0
+        },
+        {
+          "holdout_season": "2024/25",
+          "train_seasons": [
+            "2020/21",
+            "2021/22",
+            "2022/23",
+            "2023/24"
+          ],
+          "n": 5,
+          "train_n": 45,
+          "mean_clv_pct": 4.882,
+          "median_clv_pct": 4.397,
+          "share_positive_clv_pct": 100.0
+        }
+      ],
+      "consistency": {
+        "positive_folds": 2,
+        "total_folds": 2,
+        "label": "2/2"
+      },
+      "in_sample_mean_clv_pct": 3.949,
+      "pooled_oos": {
+        "n": 25,
+        "mean_clv_pct": 6.833,
+        "median_clv_pct": 6.859,
+        "share_positive_clv_pct": 88.0,
+        "std": 7.223,
+        "standard_error": 1.445,
+        "ci95_low": 4.001,
+        "ci95_high": 9.664,
+        "ci_excludes_zero": true
+      },
+      "statistically_secured": false,
+      "verdict": {
+        "status": "parked",
+        "reason": "vielversprechend, aber zu wenig Daten fuer OOS-Urteil",
+        "in_sample_edge": 3.9491621010036084,
+        "out_of_sample_edge": 6.833,
+        "n_trials": 17,
+        "deflated_edge": 2.287,
+        "details": {
+          "n_samples": 25,
+          "min_samples": 30
+        }
+      }
+    }
+  },
+  "honest_note": "Konsistent positives GEPOOLTES OOS-CLV ueber mehrere unabhaengige Holdout-Saisons ist deutlich staerker als ein Einzel-Holdout \u2014 aber +1-2 % bleibt DUENN. Das 95%-KI ist eine NORMAL-Naeherung, die Wetten als unabhaengig behandelt; real sind Wetten (gleiche Partie/Spieltag/marktweite Bewegungen) KORRELIERT, die wahre Unsicherheit ist GROESSER (das KI ist also optimistisch/zu eng). Schliesst das KI die 0 NICHT aus, ist selbst ein positiver Mittelwert statistisch NICHT abgesichert. Kosten/Steuern/Limits bleiben unmodelliert; ein bestandener Walk-Forward ist ein SIGNAL, kein Gewinn-Beweis."
+}

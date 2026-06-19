@@ -1,376 +1,323 @@
-# arbfinder — Sportwetten-Arbitrage erkennen & melden
+# arbfinder
 
-Erkennt risikoarme Quoten-Konstellationen ("Arbitrage") ueber Buchmacher hinweg
-und **meldet** sie. Gebaut so, dass Claude Code eigenstaendig Strategien
-implementieren, backtesten und plotten kann (siehe `CLAUDE.md`).
+**A market-efficiency study of football betting odds: can a single, realistically
+reachable book systematically beat the sharp closing line — and does the edge
+survive out-of-sample?**
 
-> **Leitplanke vorab:** Dieses Tool **platziert niemals Wetten**. Es erkennt und
-> meldet. Echte Daten ausschliesslich ueber lizenzierte APIs — kein Scraping,
-> keine Erkennungs-Umgehung. Details unten unter [Leitplanken](#leitplanken).
+![Python](https://img.shields.io/badge/python-3.11%2B-blue)
+![Tests](https://img.shields.io/badge/tests-272%20passing-brightgreen)
+![Typing](https://img.shields.io/badge/mypy-clean-brightgreen)
+![License](https://img.shields.io/badge/license-MIT-green)
 
-## Setup
+> **TL;DR.** This project searches for an exploitable, out-of-sample-stable edge in
+> football match-odds markets, using **Closing Line Value (CLV)** against the
+> margin-removed Pinnacle closing line as the primary metric. The honest result:
+> the efficient EPL shows **nothing** in moderate odds; a scan of 17 less-liquid
+> leagues surfaced 4 candidates; a single-season holdout confirmed one (Italian
+> Serie B); but a **walk-forward** over multiple seasons **demoted it** and left
+> exactly one league (English National League) only *marginally* secured — its 95%
+> CI lower bound is +0.25% under an admittedly optimistic independence assumption.
+> **The deliverable is the methodology, not a profit claim.** Finding one thin
+> candidate and disproving three is presented as the success: scientific
+> discipline and protection against overfitting are the point.
+
+---
+
+## Why this exists (and how to read it)
+
+I built this as a portfolio piece for quantitative / quant-dev / data-science
+roles. The selling point is **rigour and intellectual honesty**, not a money
+machine. Betting markets are a clean lab for market-efficiency questions — events
+resolve to known ground truth within days and a near-consensus sharp price exists —
+so they let me demonstrate the workflow a quant actually cares about: devigging,
+leakage-free validation, multiple-testing control, walk-forward analysis, and
+confidence intervals, with every limitation stated out loud.
+
+For the deep dive (maths, devigging, the full validation logic, exact verdict
+definitions), see **[docs/METHODOLOGY.md](docs/METHODOLOGY.md)**.
+
+## Contents
+
+- [Motivation & problem](#motivation--problem)
+- [Methodology](#methodology)
+- [Results](#results)
+- [Key engineering decisions](#key-engineering-decisions)
+- [Architecture](#architecture)
+- [Installation & usage](#installation--usage)
+- [Reproducibility](#reproducibility)
+- [Honest limitations & what I'd do next](#honest-limitations--what-id-do-next)
+- [Tech stack](#tech-stack) · [License](#license) · [About](#about)
+
+## Motivation & problem
+
+A decimal odd `o` implies probability `1/o`. For a complete market the bookmaker's
+**overround** is `Σ 1/oᵢ > 1` (the margin). If the *best* cross-book prices ever
+sum to `< 1`, a risk-free **Dutch book** (arbitrage) exists. That detection is a
+~30-line mathematical fact (`arbitrage.py`) with **no overfitting risk** — and
+therefore the *least* interesting part of the project.
+
+The real question is about **predictive** edge: can a price from a single book you
+can actually bet (Bet365) systematically beat the **fair** (margin-removed)
+*closing* line of the sharpest book (Pinnacle)? The maths there is trivial too —
+the edge, if it exists, lives in **data quality and disciplined validation**, which
+is exactly what this repo is built to stress-test.
+
+## Methodology
+
+The pipeline (full detail in [docs/METHODOLOGY.md](docs/METHODOLOGY.md)):
+
+**Data & metric**
+- **Source:** [football-data.co.uk](https://www.football-data.co.uk) historical CSVs
+  (closing odds of many books **plus** match results). Used within its terms — only
+  known, fixed file URLs are fetched (`download_data.py`); the site is never scraped
+  or parsed.
+- **Pinnacle as the sharp anchor.** Pinnacle's devigged line is a far better
+  fair-value estimate than an average over soft books. Devig = take `1/o`, renormalise
+  to sum 1 (margin removed). Circularity is avoided by leave-one-out exclusion.
+- **CLV as the primary metric:** `CLV% = (bet_odd × p_close − 1) × 100`, where
+  `p_close = devig(Pinnacle close)`. CLV is the **leading indicator**: it needs no
+  match results, is far less noisy than realised PnL, and is the standard evidence
+  of skill (consistently beating the closing line). Negative CLV with positive PnL
+  ⇒ the PnL was luck. Crucially the benchmark is the **devigged** close — a
+  deliberately *harder* bar than the margin-shortened raw price.
+- **Moderate odds 2.0–4.0** to avoid the longshot trap (on EPL, 46 of 49 edge-hits
+  were longshots at odds > 4.0 — reported, not hidden).
+
+**The validation hierarchy** (the centrepiece)
+1. **Three-tier verdict** `confirmed / parked / rejected` — no hard guillotine; only
+   `rejected` is terminal, `parked` keeps promising-but-thin candidates alive
+   (after López de Prado).
+2. **Multiple-testing deflation** of the in-sample edge (mild, log-scaled,
+   informative-only).
+3. **Bankroll simulation** with a binding €100 stake, flat and ¼-Kelly, and **ruin**
+   (kills the infinite-capital illusion).
+4. **Stress checks:** price haircut (executability) and concentration by
+   season / book / odds bucket (ruin-independent flat-unit ROI).
+5. **Single holdout → walk-forward with pooling and 95% confidence intervals.** A
+   tiny holdout *must* `park`, never `confirm` (`min_samples ≥ 30`).
+6. **`statistically_secured`** only if `confirmed` **and** the pooled CI excludes 0 —
+   and even that is flagged *barely secured* when the lower bound sits near zero,
+   with the optimistic-independence caveat stated in the output itself.
+
+## Results
+
+The honest journey across four stages (real numbers; machine-readable evidence in
+[`docs/results/`](docs/results), regenerate with [`make reproduce`](#reproducibility)):
+
+**Stage 0 — EPL (the efficient market): nothing.**
+With Bet365 vs. the devigged Pinnacle close in 2.0–4.0 odds, only **3** moderate-odds
+value bets exist across 3 seasons — **46 of 49** edge-hits are longshots (> 4.0) that
+the odds filter deliberately removes. As expected for one of the most efficient
+markets in the world, there is no robust edge.
+([`docs/results/epl_baseline.json`](docs/results/epl_baseline.json))
+
+**Stage 1 — Less-liquid league scan: 4 candidates.**
+17 leagues, 85 league-season files, **29,798 matches** (2020/21–2024/25). Four leagues
+clear the in-sample robustness bar (mean CLV clearly > 0, share-positive > 55%, spread
+across ≥ 2 odds buckets, n ≥ 50): **SC3, EC, I2, F2**.
+([`docs/results/league_scan.json`](docs/results/league_scan.json))
+
+![Mean CLV per league](docs/img/league_clv.png)
+
+**Stage 2 — Single-season holdout (train 2020/21–2023/24 → test 2024/25): I2 confirmed.**
+Only **I2 (Serie B)** survives: in-sample +1.84% → OOS **+1.07%** over n=31. **EC** is
+the most intriguing *parked* case (OOS +3.13% but n=22 < 30); F2 (n=6) and SC3 (n=5)
+are parked on tiny samples. ([`docs/results/oos_summary.json`](docs/results/oos_summary.json))
+
+![Single-holdout in-sample vs out-of-sample](docs/img/oos_overview.png)
+
+**Stage 3 — Walk-forward + pooling + 95% CI: I2 demoted, only EC marginally secured.**
+Expanding-window folds (holdouts 2023/24 and 2024/25) pool OOS bets per league:
+
+| League | in-sample | pooled OOS | n | folds + | 95% CI | verdict |
+|---|---|---|---|---|---|---|
+| **EC** National League | +1.70% | **+2.45%** | 48 | 2/2 | **[+0.25, +4.64]** ✓ excl. 0 | `confirmed` · **barely** secured |
+| **I2** Serie B | +1.70% | +1.59% | 41 | 2/2 | **[−0.46, +3.64]** ✗ incl. 0 | `confirmed` · **not** secured |
+| **F2** Ligue 2 | +0.95% | +2.93% | 14 | 2/2 | [+1.05, +4.82] ✓ | `parked` (n < 30) |
+| **SC3** Scottish L2 *(uncertain)* | +3.95% | +6.83% | 25 | 2/2 | [+4.00, +9.66] ✓ | `parked` (n < 30) |
+
+([`docs/results/walkforward_summary.json`](docs/results/walkforward_summary.json))
+
+![Pooled OOS CLV per league with 95% CI](docs/img/walkforward_overview.png)
+
+The walk-forward earns its keep: **I2's single-season "confirmed" did not hold** —
+pooling two folds gives a CI that **includes 0**, so its positive mean is not
+statistically secured. **EC** is the only league `confirmed` *and* with a pooled CI
+above 0 — but only *barely* (lower bound **+0.25%**), under a CI that the code itself
+flags as optimistic. And "2/2 folds positive" is mean-only: EC's first fold (2023/24)
+was effectively a coin-flip (mean +1.87% but **median −0.31%, 50% positive**); the
+signal comes from the second fold and the pooled sample, not from both windows equally.
+
+<p>
+<img src="docs/img/walkforward_EC.png" width="49%" alt="EC walk-forward"/>
+<img src="docs/img/walkforward_I2.png" width="49%" alt="I2 walk-forward"/>
+</p>
+
+**Honest conclusion.** One league (EC) is *statistically just-positive* on the pooled
+sample (positive on the mean in both holdout windows, but one of them barely so) — a
+real signal worth more data, yet **thin, optimistically estimated, and unproven against
+costs and stake limits**. One candidate (I2) was disproved by the walk-forward; two
+remain unproven on sample size. **No profit
+is claimed.** Surfacing one marginal candidate and rejecting the rest — with every
+caveat visible — is the result.
+
+## Key engineering decisions
+
+- **`src/` layout, fully typed, mypy-clean (28 modules), 272 tests** — runnable
+  entirely offline against bundled mock fixtures (no API key, no network).
+- **Extensible `Strategy` interface + registry** — arbitrage and value betting are
+  interchangeable strategies; a `requires_validation` flag routes *predictive*
+  strategies through the three-tier judge while pure arbitrage (a fact) bypasses it.
+- **Swappable `FairProbabilityModel`** — consensus-devig vs. single-sharp-anchor are
+  drop-in; the fair-value estimate is the real lever, so it is isolated behind an ABC.
+- **Defensive data parsing** — encoding fallback (`utf-8 → cp1252 → latin-1` for the
+  smart-apostrophe files), the `VC`/`...C` closing-column ambiguity handled correctly,
+  missing-field rows skipped *and reported* (`skipped_incomplete`), never silently
+  dropped or back-filled with placeholders.
+- **No silent truncation** — every filter (odds window, completeness, ruin) is counted
+  and surfaced in the JSON, so a reader can see exactly what was excluded and why.
+- **Adversarial review at each step** — every feature was reviewed by an independent
+  multi-agent pass (find → independently refute by reproduction) before commit;
+  several real honesty bugs were caught and fixed (e.g. ruin-truncated season ROI; a
+  razor-thin CI once oversold as "clearly above 0"). The git history shows the loop.
+- **Guardrails** — detect/report only (no bet is ever placed), licensed data via known
+  file URLs only (no scraping), API keys read from env and never logged.
+
+## Architecture
+
+```
+src/arbfinder/
+├── arbitrage.py        Maths core: Dutch-book / overround (a fact, no validation)
+├── models.py           Provider-independent Event/Market; identity = teams AND kickoff
+├── normalize.py        3-stage team matching (alias → canonical → fuzzy)
+├── fair_probability.py Swappable fair-prob models: consensus-devig, Pinnacle anchor
+├── strategies/         Strategy ABC + registry; arbitrage & value strategies
+├── providers/          Data sources: offline mock, football-data CSV, The Odds API
+├── detector.py         provider → normalize → per-market detection → signals
+├── backtest.py         Eval harness; emits a validation.judge() verdict per strategy
+├── validation.py       Three-tier judge, multiple-testing deflation, purged splits
+├── diagnostics.py      Bankroll/ruin simulation + stress checks (haircut, concentration)
+├── pinnacle.py         Pinnacle-anchor + CLV analysis (single-market)
+├── leaguescan.py       Multi-league scan: devigged-close CLV, robustness ranking
+├── oos.py              Out-of-sample holdout + walk-forward pooling + 95% CI
+├── plotting.py         matplotlib charts (optional dependency)
+└── cli.py              `arbfinder` CLI (scan, backtest, league-scan, oos-test, diagnose, …)
+download_data.py        Targeted download of known football-data CSV URLs (no scraping)
+scripts/reproduce.sh    End-to-end regeneration of all results
+```
+
+## Installation & usage
 
 ```bash
+git clone <repo-url> && cd arbfinder
 python -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev,plot]"        # Basis + Tests + Plots
-pytest                               # alles gruen?
+pip install -e ".[dev,plot]"     # core is pure-stdlib; matplotlib only for plots
+
+make test      # 272 passing
+make lint      # mypy, clean
+make demo      # offline demo on bundled mock fixtures (no data, no network)
 ```
 
-Optionale Extras (werden nur fuer das jeweilige Modul gebraucht):
+> **A note on language.** This README, the analysis, and all metric names are in
+> English. The in-code docstrings and the CLI's one-paragraph summaries are in
+> **German** — the project's working language during development. The verbatim
+> output below is therefore German (translation in the comment).
 
-| Extra    | Paket         | Wofuer                                            |
-|----------|---------------|---------------------------------------------------|
-| `dev`    | pytest        | Tests                                             |
-| `plot`   | matplotlib    | Vergleichs-Charts (`plotting.py`)                |
-| `fuzzy`  | rapidfuzz     | Stufe 3 der Normalisierung (Fallback: difflib)   |
-| `live`   | requests      | echter Odds-API-Provider (`providers/theoddsapi`)|
-| `agent`  | apscheduler   | periodischer Agent (`agent.py`)                  |
+**Offline demo** (no data download needed — uses `fixtures/`):
+
+```text
+$ arbfinder scan
+Provider=mock  Strategie=arbitrage
+Events: 5 -> 5 zusammengefuehrt | Maerkte geprueft: 5 | verworfen (unvollstaendig): 1 | verworfen (<2 Ausgaenge): 0 | Signale: 2
+  • Manchester City v Arsenal [h2h] kind=arbitrage edge=2.41%
+      Quoten: Manchester City @ 2.12 (BookieB), Draw @ 3.75 (BookieB), Arsenal @ 4.2 (BookieA)
+      Einsaetze: Manchester City=483.07, Draw=273.1, Arsenal=243.84
+  • Tottenham Hotspur v United [h2h] kind=arbitrage edge=2.75%
+      Quoten: Tottenham Hotspur @ 2.75 (BookieB), Draw @ 3.55 (BookieB), United @ 3.05 (BookieB)
+      Einsaetze: Tottenham Hotspur=373.65, Draw=289.45, United=336.9
+
+Hinweis: Nur Erkennung/Meldung — es werden KEINE Wetten platziert.
+# 5 events, 5 merged, 5 markets, 1 dropped as incomplete, 0 with <2 outcomes, 2 signals;
+# stakes are on a notional 1000-unit bankroll; "detection/reporting only — no bets are ever placed."
+```
+
+**Research commands** (need real data — see [Reproducibility](#reproducibility)):
 
 ```bash
-pip install -e ".[dev,plot,fuzzy,agent]"
+# Rank less-liquid leagues by devigged-close CLV (B365, odds 2.0–4.0)
+arbfinder league-scan --csv-dir data/leagues --plots results
+
+# Single-season out-of-sample holdout, judged by validation.judge
+arbfinder oos-test --csv-dir data/leagues --plots results
+
+# Walk-forward over rolling holdouts: pooling + 95% confidence intervals
+arbfinder oos-test --walk-forward --csv-dir data/leagues --plots results
+
+# Honest bankroll/ruin + stress diagnosis of any settled value run
+arbfinder diagnose --data <settled.jsonl> --plot results/bankroll.png
 ```
 
-## Schnellstart
+Each command writes a self-contained JSON report and prints a sober one-paragraph
+summary (verdict, the thin-signal caveats, costs/limits not modelled).
+
+**Data acquisition.** `python download_data.py` fetches the league CSVs from their
+**known, fixed** football-data.co.uk URLs (`mmz4281/<season>/<league>.csv`) into
+`data/leagues/` — skip-if-exists, polite delay, realistic User-Agent, and
+self-correction (404 / no-Pinnacle / wrong-encoding files are skipped and reported).
+No HTML pages are requested or parsed. Raw CSVs are **not** committed (size / ToS);
+they are fully reproducible from the script.
+
+## Reproducibility
 
 ```bash
-# 1) Offline scannen (Mock-Provider liest fixtures/recorded_odds.jsonl)
-arbfinder scan --provider mock
-
-# 2) Baseline-Backtest inkl. Validierungs-Urteil -> results/last_backtest.json
-arbfinder backtest --strategy arbitrage
-
-# 3) Periodischer Agent (meldet in Konsole/Logfile; setzt NIE)
-python -m arbfinder.agent --interval 60 --logfile alerts.log
-python -m arbfinder.agent --once                 # ein einzelner Lauf
+make reproduce        # or: bash scripts/reproduce.sh
 ```
 
-`scan` zeigt zusaetzlich Datenqualitaets-Zaehler (geprueft / zusammengefuehrt /
-verworfen-unvollstaendig / Signale). `backtest` vergleicht mit dem letzten Lauf
-und **warnt**, wenn mehr Signale nur daher kommen, dass die
-Vollstaendigkeitspruefung aufgeweicht wurde (`skipped_incomplete` gefallen).
+This runs the full chain — download → EPL baseline → league scan → single holdout →
+walk-forward — writing all JSON and plots to `results/` (gitignored scratch). The
+curated subset the README embeds is committed under [`docs/`](docs). A fresh clone can
+reproduce every headline number; the offline `make demo` reproduces the detection
+pipeline with **no** data or network at all.
 
-## Architektur
+## Honest limitations & what I'd do next
 
-```
-providers/         Datenquellen -> einheitliche Event-Objekte (defensiv parsen)
-  base.py          Provider-Interface + Parse-Helfer
-  mock.py          liest aufgezeichnete .jsonl (laeuft offline, end-to-end)
-  theoddsapi.py    Live-Client lizenzierte API: fetch_events + fetch_historical (Key via ODDS_API_KEY)
-  footballdata.py  Loader fuer football-data.co.uk CSV-Dateien (Schlussquoten + Ergebnis)
-models.py          anbieterunabhaengige Event/Market (start_time ist Pflicht)
-normalize.py       3-Stufen-Teamnormalisierung + Event-Identitaet (Teams+Zeit)
-backfill.py        historischer Quoten-Backfill (Kosten-Guards: 10x Credits)
-recorder.py        zeichnet echte Quoten-Snapshots auf (append-only, lizenz. API)
-results.py         traegt echte Ergebnisse nach (ResultSource, scores-Endpoint)
-detector.py        Pipeline: fetch -> normalize/merge -> pro Markt pruefen ->
-                   Vollstaendigkeit zaehlen -> Strategie -> Mindest-Profit
-strategies/        austauschbare Strategien (arbitrage, value; Vorbild: arbitrage.py)
-fair_probability.py austauschbares Modell der fairen Wkt. (Konsens-Devig, fuer value)
-arbitrage.py       Mathe-Kern (Marge, Stake-Allokation) — fertig
-backtest.py        Eval-Harness (Metriken) + validation.judge()-Urteil
-validation.py      dreistufiges Urteil (confirmed/parked/rejected), kein Fallbeil
-plotting.py        Vergleichs-Charts
-cli.py / agent.py  CLI bzw. periodischer Scanner
-```
+Stated prominently, because for a quant these *are* the interesting part:
 
-Die **Bruecke** zwischen den neuen Modulen und dem fertigen Kern ist
-`Event.to_snapshots()`: es erzeugt pro Markt genau das Snapshot-Dict, das
-`Strategy.evaluate` und `backtest.run` ohnehin konsumieren. So bleibt der Kern
-unangetastet.
+- **The CI is optimistic.** It treats every bet as independent; real bets are
+  correlated (same match / match-day / market-wide moves), so the true interval is
+  wider — EC's +0.25% lower bound could cross zero. **Next:** a **block/cluster
+  bootstrap** (resample by match-day) for a correlation-aware interval. *This is the
+  single most important next step.*
+- **Costs and stake limits are unmodelled.** No commission/tax, and crucially no
+  bookmaker limits — and the books offering the most generous prices limit winners
+  first. **Next:** a cost/limit haircut sensitivity on the pooled CLV.
+- **Thin samples & one test window.** A few hundred bets across five seasons; even a
+  clean walk-forward is a *signal*, not a guarantee. **Next:** more leagues of the
+  same tier to grow EC/F2-like samples.
+- **Different domain.** **Next:** apply the same validated pipeline to **prediction
+  markets** (e.g. exchange/Polymarket-style venues) where there is **no bookmaker
+  stake limit** — the binding real-world constraint here — making any surviving edge
+  actually executable.
 
-## Die autonome Schleife (siehe CLAUDE.md)
+## Tech stack
 
-```
-messen -> Hypothese -> implementieren -> erneut messen -> plotten ->
-behalten, wenn BELEGT besser (Zahlen in results/), sonst zuruecknehmen
-```
+Python 3.11+ (**pure-standard-library core** — no heavyweight deps for the maths or
+validation), `matplotlib` for optional plots, `pytest` for tests, `mypy` for static
+typing. Optional extras: `requests` (live Odds-API provider), `rapidfuzz` (fuzzy team
+matching), `apscheduler` (periodic scanner). Deliberately dependency-light so the
+methodology — not a framework — is the substance.
 
-Slash-Commands als Helfer: `/backtest`, `/new-strategy`, `/experiment`, `/plot`.
-Eine Verbesserung zaehlt nur, wenn sie eine Metrik verbessert, **ohne** eine
-andere unzulaessig zu verschlechtern — insbesondere darf `skipped_incomplete`
-nicht sinken, weil der Vollstaendigkeitsschutz aufgeweicht wurde.
+## License
 
-## Strategien
+[MIT](LICENSE).
 
-| Strategie   | Idee                                              | Risiko        | `requires_validation` |
-|-------------|---------------------------------------------------|---------------|-----------------------|
-| `arbitrage` | beste Quote je Ausgang, Marge < 1 -> Hedge        | risikoarm     | `False` (Mathe)       |
-| `value`     | beste Quote schlaegt geschaetzte faire Wkt.       | **echt** (kein Hedge) | `True` (praediktiv) |
+Data is from football-data.co.uk and used in line with its terms (known file URLs
+only, no scraping); raw data is not redistributed in this repo.
 
-```bash
-arbfinder scan --provider mock --strategy value          # Value-Gelegenheiten melden
-arbfinder backtest --strategy value                       # -> Urteil i.d.R. "parked"
-```
+## About
 
-**Value Betting trägt echtes Risiko.** Anders als Arbitrage gibt es keinen
-Hedge — du setzt auf eine einzelne Quote und kannst verlieren. Alles haengt an
-der Qualitaet des fairen-Wahrscheinlichkeits-Modells (`fair_probability.py`,
-austauschbar). Der erste Schaetzer **Konsens-Devig** ist bewusst grob: er nimmt
-an, der Markt sei im Mittel fair (Vig herausgerechnet) — was er nicht immer ist.
-Zur Vermeidung von Zirkularitaet wird die faire Wahrscheinlichkeit fuer die beste
-Quote per **Leave-one-out** OHNE genau diesen Bookie geschaetzt; es braucht
-danach **mindestens zwei** unabhaengige Bookies (Default `min_books=2`) — ein
-"Konsens" aus einer einzigen Quelle ist keiner und erzeugt kein Signal. Weil `value`
-praediktiv ist, durchlaeuft sie `validation.judge`: ohne Out-of-Sample-Beleg
-lautet das Urteil **"parked"** (vielversprechend, aber noch nicht bestaetigt) —
-nicht "confirmed".
+Built by **Leonardo Berisha** as a demonstration of quantitative research
+methodology — devigging, leakage-free validation, walk-forward analysis, and honest
+statistical reporting. Feedback and questions welcome.
 
-Ein In-/Out-of-Sample-Split (`validation.purged_split`) ist **verdrahtet**
-(`backtest.run_validated`): auf den Test-Folds wird das *realisierte* Ergebnis
-der Signale mit bekanntem Ausgang berechnet und an `judge` gegeben. Damit ist
-der `confirmed`-Pfad fuer praediktive Strategien grundsaetzlich erreichbar —
-**aber ehrlich:** der Split ist nur ein Mechanismus. Aussagekraeftig wird er
-erst mit ausreichend historischen Quoten UND Ergebnissen. Bei zu wenigen
-belegten OOS-Wetten (oder ganz ohne Ergebnisse) bleibt das Urteil bewusst
-`parked` — es wird **nicht faelschlich** `confirmed`. Mit der winzigen
-Beispiel-Fixture ist somit nur der Mechanismus getestet, keine inhaltliche
-Bestaetigung.
-
-## Validierung — gegen Selbstbetrug, ohne Gutes zu verwerfen
-
-Jeder Backtest liefert ein dreistufiges Urteil (`validation.judge`):
-
-- **confirmed** — in-sample Signal und out-of-sample robust; *oder* reine
-  Arbitrage (mathematische Tatsache, `requires_validation=False`).
-- **parked** — vielversprechend, aber zu wenig Belege -> **nicht** verwerfen,
-  mehr Daten holen. Das Sicherheitsnetz gegen vorschnelles Aussortieren.
-- **rejected** — auch in-sample kein Signal -> raus.
-
-Reine Arbitrage braucht keine Validierung; praediktive Strategien (z.B. Value
-Betting) schon. Die Deflationierung bei Mehrfachtests ist nur informativ.
-
-## Ehrliche Grenzen
-
-- **Der Edge kommt aus Daten/Tempo/Normalisierung, nicht aus der Mathematik.**
-  Die Arbitrage-Formel ist trivial und ueberall bekannt. Der Unterschied
-  entsteht durch Abdeckung, Geschwindigkeit und korrektes Zusammenfuehren
-  gleicher Events ueber Anbieter hinweg (`normalize.py`).
-- **Ohne historische Quoten UND Ergebnisse misst der Backtest nur Detektion,
-  nicht Profit.** `realized_pnl` erscheint nur, wenn die Daten `result` tragen;
-  reine Quoten-Snapshots erlauben nur Aussagen ueber Detektions-Korrektheit.
-- **Arbs leben Sekunden bis Minuten.** Die Quoten-Latenz je API-Tier
-  entscheidet, ob ein erkanntes Arb beim Setzen noch existiert. Die
-  Snapshot-Frequenz gehoert dokumentiert.
-- **Phantom-Arbs** entstehen durch ungleiche Bookie-Abdeckung (ein Ausgang
-  fehlt -> Marge scheinbar < 1). Deshalb wird Vollstaendigkeit geprueft und
-  `skipped_incomplete` gezaehlt statt still geschluckt.
-- Reale Margen liegen meist bei **1–3 %**.
-- **Value Betting ist KEINE Arbitrage:** es traegt echtes Risiko (kein Hedge),
-  und seine Signale sind nur so gut wie das faire-Wahrscheinlichkeits-Modell.
-  Deshalb parkt `validation.judge` Value-Signale ohne Out-of-Sample-Beleg, statt
-  sie zu bestaetigen.
-
-## Echte Daten anbinden (spaeter, mit Lizenz)
-
-`providers/theoddsapi.py` ist ein minimaler Client fuer eine kommerzielle
-Odds-API (Beispiel: The Odds API, v4) — **kein** Scraper. Der Netzwerk-Pfad ist
-implementiert, braucht aber einen gueltigen Schluessel und eine gueltige Lizenz.
-
-```bash
-export ODDS_API_KEY="dein_lizenzierter_schluessel"   # NICHT eincheck! (.env)
-pip install -e ".[live]"
-```
-
-Der Mapping-Teil (`parse_response`) ist ohne Netzwerk getestet; der Live-Abruf
-braucht einen gueltigen Schluessel und eine gueltige Lizenz.
-
-## Daten sammeln — der eigentliche Engpass
-
-Der Backtest misst nur **Detektion**, solange keine historischen Quoten MIT
-Ergebnissen vorliegen. Das schliesst der Recorder (alles ueber die lizenzierte
-API, **kein Scraping**):
-
-```bash
-export ODDS_API_KEY="dein_lizenzierter_schluessel"   # nie committen (.env)
-pip install -e ".[live,agent]"
-
-# 1) Quoten ueber Tage/Wochen aufzeichnen (append-only)
-arbfinder record --interval 10 --sport soccer_epl --out data/epl.jsonl
-
-# 2) Nach den Spielen die tatsaechlichen Ausgaenge nachtragen (scores-Endpoint)
-arbfinder fetch-results --data data/epl.jsonl --sport soccer_epl --days-from 3
-
-# 3) Backtesten — mit Ergebnissen misst der Backtest jetzt auch PnL, nicht nur Detektion
-arbfinder backtest --strategy value --data data/epl.jsonl
-```
-
-Realistischer Ablauf: Recorder ueber Tage/Wochen laufen lassen, regelmaessig
-`fetch-results` ziehen (der scores-Endpoint reicht nur begrenzt zurueck, siehe
-`--days-from`), dann backtesten. Erst mit **genuegend** Snapshots MIT Ergebnissen
-wird der `confirmed`-Pfad fuer praediktive Strategien aussagekraeftig — vorher
-bleibt es bewusst `parked`.
-
-Ehrlich zur **Quoten-Latenz**: je API-Tier liegen Sekunden bis Minuten zwischen
-echter Quotenaenderung und Abruf. Ein im Snapshot erkanntes Signal war also nicht
-zwingend real setzbar — dokumentiere die Snapshot-Frequenz (`--interval`), wenn du
-spaeter Profitabilitaet bewertest. Das API-**Kontingent** ist begrenzt (der Recorder
-loggt den Verbrauch); `--interval` ist die primaere Rate-Kontrolle.
-
-Die Ergebnis-Quelle ist **austauschbar** (`results.ResultSource`): deckt The Odds
-API eine Sportart/Periode nicht ab, kann eine andere Quelle eingehaengt werden.
-Fehlt ein Ergebnis, bleibt `result` offen — es wird **nichts erfunden**.
-
-### Sofort: historischer Backfill (Arbitrage) — statt wochenlang vorwaerts sammeln
-
-```bash
-# ACHTUNG: der historische Endpoint kostet ~10x Credits pro Abruf.
-arbfinder backfill --sport soccer_epl \
-  --from 2024-08-17T11:00:00Z --to 2024-08-17T17:00:00Z --interval 10 \
-  --out data/epl_hist.jsonl --max-snapshots 100
-arbfinder backtest --strategy arbitrage --data data/epl_hist.jsonl
-```
-
-`--from/--to/--interval` sind **Pflicht** (kein versehentliches Verbrennen des
-Kontingents); die geschaetzten Credits werden vorher laut geloggt, und
-`--max-snapshots` bricht ab, bevor ein zu grosser Lauf startet.
-
-**Ehrlich:** 5-10-Minuten-Snapshots zeigen, dass zu diesem Zeitpunkt eine Arb
-**existierte** — NICHT, dass sie lange genug **real setzbar** war. Der historische
-Arbitrage-Backtest liefert damit eine **Obergrenze** gefundener Arbs (Detektion),
-nicht "so viel haetten wir verdient" (Ausfuehrbarkeit). Und ein aussagekraeftiger
-Arb-Backtest braucht das **volle Bookie-Set** (z.B. Pinnacle), das nur hoehere
-API-Plaene (Business) liefern — sonst fehlen schlicht die Arbs.
-
-### Sofort: kostenlose Schlussquoten + Ergebnisse (Value)
-
-[football-data.co.uk](https://www.football-data.co.uk/) bietet CSV-Dateien zum
-**Download** an (Schlussquoten mehrerer Bookies PLUS Ergebnis je Spiel). Datei
-laden (kein Scraping!), konvertieren, backtesten:
-
-```python
-from arbfinder.providers.footballdata import to_jsonl
-to_jsonl("E0.csv", "data/epl.jsonl")     # CSV -> JSONL (durch normalize.py)
-```
-```bash
-arbfinder backtest --strategy value --data data/epl.jsonl
-```
-
-Weil hier **echte Ergebnisse** vorliegen, ist das der erste Lauf, bei dem das
-`confirmed`-Urteil inhaltlich greifen KANN.
-
-**Echtes Beispiel (3 PL-Saisons, 2022/23–2024/25, 1140 Spiele):** 678 Value-
-Signale, behaupteter In-Sample-Edge ~6.9 %, **realisierter PnL +2061** auf 678
-Wetten (Einsatz je 100 → +3.0 %), Urteil **confirmed**. **Aber ehrlich einordnen:**
-- Konsens-Devig ist nur ein **grober** Schaetzer; +3 % auf Schlussquoten ist viel
-  und kommt wesentlich aus dem Wetten der **grosszuegigsten** Quote je Ausgang
-  (Line-Shopping) — genau das, was Buchmacher mit **Limitierung** von
-  Gewinner-Konten unterbinden (im Backtest nicht modelliert).
-- **Kosten/Provision/Limits** sind NICHT abgezogen; "confirmed" heisst hier
-  "realisierter Edge ueber die Stichprobe war positiv (≥30 Wetten)", nicht
-  "garantierter Profit".
-- Der Out-of-Sample-Split ist fuer dieses **nicht lernende** Modell rechnerisch
-  gleich dem In-Sample (das Modell lernt nichts aus dem Train-Fold; siehe
-  `run_validated`). Ein echter Holdout/Walk-Forward kaeme erst mit einer lernenden
-  Strategie — bis dahin ist "confirmed" als **in-sample-positiv** zu lesen.
-
-### Signal oder Rauschen? `arbfinder diagnose`
-
-`diagnostics.py` prueft den bestehenden Lauf mit realistischem Bankroll-Management
-(100 EUR Startkapital, Konto als bindende Grenze, Ruin-Stopp) und drei
-Realitaets-Checks — **nie nur absolute PnL**:
-
-```bash
-arbfinder diagnose --data data/epl_3seasons.jsonl --plot results/bankroll.png
-```
-berichtet je Einsatzregel (Flat 1 % vs. 1/4-Kelly, compoundet) Endkapital, ROI
-auf den Umsatz, max. Drawdown, Trefferquote, Ruin; dazu (1) Preis-Abschlag
-0/1/2/3 %, (2) Konzentration nach Bookmaker & Saison, (3) Konzentration nach
-Quoten-Bereich.
-
-**Befund auf den 3 echten PL-Saisons (678 Wetten):** aus 100 EUR werden flat
-120.61 EUR (ROI +3.0 %) — aber bei **51.9 % Drawdown**, und ein **3 %-Abschlag**
-(realistische Slippage auf Schlussquoten) kippt es ins Minus. Der Gewinn haengt
-an **einer Saison** (2022/23 = **87 % der Gewinne** bei ROI +30.7 %, waehrend
-2023/24 mit **−39 € / ROI −19.7 %** verliert — der Edge **dreht das Vorzeichen**,
-ist also nicht persistent) und steckt zu **~69 % im Quotenband 3.5–6.0**,
-waehrend **62 % aller Wetten** extreme Aussenseiter (Quote >6.0) sind, die in
-Summe **verlieren** (Devig-/Favorite-Longshot-Bias). *(Anteile = Anteil an den
-Gesamtgewinnen, bewusst nicht am winzigen Netto — sonst explodieren sie ueber
-100 %.)* **Fazit: die +PnL ist mit hoher Wahrscheinlichkeit Artefakt/Rauschen,
-kein echter Edge — kein lernendes Modell bauen, der Edge scheitert schon an der
-Realitaet.**
-
-### Die verteidigbare Version: Pinnacle-Anker + Closing Line Value (`arbfinder pinnacle-run`)
-
-Statt des entlarvten Konsens-Devig-Ankers: Pinnacle (schaerfster Bookie) als
-fairer Anker und **CLV als PRIMAERE Metrik** — die genommene Quote gegen die
-Pinnacle-SCHLUSSquote: `CLV = genommene_quote / pinnacle_schluss - 1`. Positives
-CLV (eine bessere Quote als die scharfe Schlusslinie zu bekommen) ist der
-fuehrende Edge-Indikator, braucht KEINE Ergebnisse und ist weniger verrauscht als
-PnL.
-
-```bash
-arbfinder pinnacle-run --csv data/E0_2223.csv data/E0_2324.csv data/E0_2425.csv \
-  --out-json results/pinnacle_clv_run.json --plots results --bet-source Max --anchor open
-```
-schreibt eine allein interpretierbare JSON (Pinnacle- vs. Konsens-Anker: CLV,
-PnL flat/¼-Kelly, Drawdown/Ruin, by_season/bookie/bucket, Preis-Abschlag) und
-sechs Plots.
-
-**Befund (3 echte PL-Saisons, Anker = Pinnacle-Eroeffnung):** mit Bet-Quelle
-**Max** ist das CLV scheinbar stark (+8.1 %, in 77 % der Wetten positiv) — **aber
-das ist groesstenteils ein Line-Shopping-Artefakt**: „Max" ist das MARKT-MAXIMUM
-ueber viele Bookies, das eine einzelne scharfe Schlussquote fast zwangslaeufig
-schlaegt. Wettet man stattdessen eine **EINZELNE** Quelle (`--bet-source B365`),
-faellt das CLV auf **+2.7 % (55 % positiv)** — knapp an der Effizienzgrenze. Und
-**keine** Variante traegt sich als PnL: flat aus 100 € **ruiniert** mit Max
-(→ 0 €), endet mit B365 bei ~88 €. Der Saison-Vorzeichenwechsel ist **nicht
-behoben** — und ehrlicherweise reproduziert die motivierende Praemisse („Konsens
-= Artefakt via Vorzeichenwechsel") auf diesen Daten gar nicht: mit Max wechselt
-der Konsens-Anker gar nicht das Vorzeichen, der **Pinnacle-Anker fuehrt ihn sogar
-neu ein** (per-Saison-ROI ruin-unabhaengig gerechnet: +1.9 / −29.8 / −16.9 %).
-**Verdict: NICHT bestaetigt** — positives CLV ohne PnL-Bestaetigung, und das
-starke CLV ist Line-Shopping, kein Prognose-Skill.
-
-**Ehrliche Einordnung:** Die EPL ist einer der effizientesten Maerkte — der
-haerteste Ort fuer Value; ein hier duenner/fehlender Edge schliesst weniger
-liquide Ligen NICHT aus. Pinnacle-Schluss zu schlagen ist eine starke
-Behauptung; das saubere Ein-Quellen-CLV (+2.7 %) ist genau das, was man an der
-Effizienzgrenze erwartet. Kosten/Steuern/Limits sind weiterhin nicht modelliert
-(gerade die grosszuegigen Ausreisser-Bookies limitieren Gewinner zuerst).
-
-### Liga-Scan ueber weniger liquide Ligen (`arbfinder league-scan`)
-
-Die EPL ist zu effizient. Dieser Scan wendet dieselbe Pinnacle-Anker-Methode auf
-einen ganzen Ordner von football-data CSVs an, je Liga getrennt, und sucht eine
-Liga mit SAUBER positivem CLV. Drei bewusst strengere Korrekturen:
-
-1. **Bet-Quelle = eine realistisch erreichbare Quelle** (Default `B365`), nicht
-   das Markt-Maximum `Max` (das misst Line-Shopping, kein Prognose-Skill).
-2. **CLV gegen die DEVIGTE Pinnacle-Schluss** (faire no-vig Linie), nicht die rohe
-   Quote mit Marge: `CLV = bet * devig(PSC) - 1`. Das ist die haertere Messlatte
-   — die rohe Schlussquote ist durch die Vig verkuerzt und schmeichelt dem Wetter.
-3. **Fokus auf moderate Quoten 2.0–4.0** (Aussenseiter-/Longshot-Falle vermeiden).
-
-```bash
-arbfinder league-scan --csv-dir data --plots results
-# -> results/league_scan.json (Ranking nach mean_clv, robust-Markierung je Liga)
-# -> results/best_league.json (nur die beste Liga, zum Hochladen)
-```
-Eine Liga gilt als **robust** nur bei mean_clv deutlich >0 UND Anteil positiver
-CLV >55 % UND ueber MEHRERE Quoten-Buckets verteilt (nicht nur einem) UND
-ausreichender Stichprobe. Zeigt keine Liga das, wird das klar gesagt.
-
-**Befund auf den vorhandenen Daten (nur EPL/E0 liegt als CSV vor):** Mit `B365`
-schlaegt die Eroeffnung die scharfe Pinnacle-Eroeffnung kaum — von 49 Edge-
-Treffern liegen **46 bei Quoten >4.0 (Longshots)** und nur **3** im moderaten
-Bereich 2.0–4.0 (im Mittel ist `B365` dort sogar ~5 % *enger* als Pinnacle fair).
-Die Korrektur „moderate Quoten" entfernt also genau die Longshot-Falle, in der
-fast der gesamte scheinbare „Value" steckte — und auf der effizienten EPL bleibt
-zu Recht **nichts Belastbares** uebrig (n=3, nicht interpretierbar). Der
-`odds_filter_diag`-Block je Liga macht diese Beschneidung sichtbar (kein stilles
-Wegschneiden). **Um weniger liquide Ligen zu testen** (E1/E2/E3, D2, I2, SP2, F2,
-N1, B1, P1, T1, G1, …) muessen deren football-data-CSVs in den `--csv-dir` gelegt
-werden — sie werden hier nicht heruntergeladen (kein Scraping).
-
-## Leitplanken
-
-- **Nur erkennen & melden, nie automatisch setzen.** Es gibt keine
-  Platzierungsfunktion.
-- **Keine Erkennungs-Umgehung**, kein Multi-Accounting, kein AGB-widriges
-  Scraping, kein undetected-chromedriver o.ae. Echte Daten nur ueber lizenzierte
-  APIs.
-- **Metriken nicht schoenfrisieren**, indem Schutzmechanismen
-  (Vollstaendigkeitspruefung, Markt-Trennung) aufgeweicht werden.
-- **Keine stillen Platzhalter**, die falsche Ergebnisse liefern: fehlende
-  Pflichtfelder (z.B. Anstosszeit) werden gemeldet/uebersprungen, nicht erfunden.
+- GitHub: `<your-handle>`  ·  LinkedIn: `<your-profile>`  ·  Email: `<your-email>`

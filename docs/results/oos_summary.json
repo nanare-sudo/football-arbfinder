@@ -1,0 +1,65 @@
+{
+  "meta": {
+    "bet_source": "B365",
+    "clv_benchmark": "pinnacle_close_devigged",
+    "odds_filter": [
+      2.0,
+      4.0
+    ],
+    "train_seasons": [
+      "2020/21",
+      "2021/22",
+      "2022/23",
+      "2023/24"
+    ],
+    "holdout_season": "2024/25",
+    "n_trials": 17,
+    "judge_params": {
+      "min_in_sample": 0.0,
+      "min_out_of_sample": 0.5,
+      "min_samples": 30
+    }
+  },
+  "verdicts": {
+    "EC": {
+      "status": "parked",
+      "reason": "vielversprechend, aber zu wenig Daten fuer OOS-Urteil",
+      "uncertain": false,
+      "in_sample_mean_clv_pct": 1.72,
+      "out_of_sample_mean_clv_pct": 3.125,
+      "out_of_sample_n": 22
+    },
+    "I2": {
+      "status": "confirmed",
+      "reason": "robust in- und out-of-sample",
+      "uncertain": false,
+      "in_sample_mean_clv_pct": 1.844,
+      "out_of_sample_mean_clv_pct": 1.069,
+      "out_of_sample_n": 31
+    },
+    "F2": {
+      "status": "parked",
+      "reason": "vielversprechend, aber zu wenig Daten fuer OOS-Urteil",
+      "uncertain": false,
+      "in_sample_mean_clv_pct": 1.096,
+      "out_of_sample_mean_clv_pct": 0.876,
+      "out_of_sample_n": 6
+    },
+    "SC3": {
+      "status": "parked",
+      "reason": "vielversprechend, aber zu wenig Daten fuer OOS-Urteil",
+      "uncertain": true,
+      "in_sample_mean_clv_pct": 4.912,
+      "out_of_sample_mean_clv_pct": 4.882,
+      "out_of_sample_n": 5
+    }
+  },
+  "any_confirmed": true,
+  "counts": {
+    "confirmed": 1,
+    "parked": 3,
+    "rejected": 0
+  },
+  "honest_note": "+1-2 % CLV ist ein DUENNES Signal, nah an der Schwelle, an der Buchmacher-Limits und ein real nicht erreichbarer weicher Preis es auffressen. Eine OOS-Bestaetigung hebt einen Kandidaten von 'in-sample-Artefakt' zu 'Kandidat fuer echten Edge' \u2014 aber Kosten/Limits bleiben UNMODELLIERT, und EINE Holdout-Saison ist nur EIN Test, kein Beweis. CLV gegen die DEVIGTE Pinnacle-Schluss ist die ehrlichste verfuegbare Messlatte; untere Ligen haben oft duenne/spaete Pinnacle-Abdeckung, was den Anker schwaecht.",
+  "summary_text": "Out-of-Sample-CLV-Test (Holdout 2024/25, Bet-Quelle B365, CLV vs DEVIGTE Pinnacle-Schluss). OOS-positiv bestaetigt: I2. Das hebt sie von in-sample-Artefakt zu Kandidat fuer echten Edge. EC: in 1.72% -> OOS 3.125% (n=22) [parked] | I2: in 1.844% -> OOS 1.069% (n=31) [confirmed] | F2: in 1.096% -> OOS 0.876% (n=6) [parked] | SC3 (unsicher): in 4.912% -> OOS 4.882% (n=5) [parked] Hinweis: +1-2 % CLV ist duenn; Kosten/Limits unmodelliert; EINE Holdout-Saison ist kein Beweis."
+}

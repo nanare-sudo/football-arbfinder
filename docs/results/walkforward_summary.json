@@ -1,0 +1,104 @@
+{
+  "meta": {
+    "bet_source": "B365",
+    "clv_benchmark": "pinnacle_close_devigged",
+    "odds_filter": [
+      2.0,
+      4.0
+    ],
+    "season_order": [
+      "2020/21",
+      "2021/22",
+      "2022/23",
+      "2023/24",
+      "2024/25"
+    ],
+    "min_train_seasons": 3,
+    "n_trials": 17,
+    "judge_params": {
+      "min_in_sample": 0.0,
+      "min_out_of_sample": 0.5,
+      "min_samples": 30
+    },
+    "ci_method": "normal-approx 95% (z=1.96), Wetten als unabhaengig behandelt"
+  },
+  "verdicts": {
+    "EC": {
+      "status": "confirmed",
+      "reason": "robust in- und out-of-sample",
+      "uncertain": false,
+      "statistically_secured": true,
+      "consistency": "2/2",
+      "in_sample_mean_clv_pct": 1.697,
+      "pooled_oos_n": 48,
+      "pooled_oos_mean_clv_pct": 2.446,
+      "pooled_oos_median_clv_pct": 1.847,
+      "pooled_oos_share_positive_pct": 60.4,
+      "ci95": [
+        0.25,
+        4.641
+      ],
+      "ci_excludes_zero": true
+    },
+    "I2": {
+      "status": "confirmed",
+      "reason": "robust in- und out-of-sample",
+      "uncertain": false,
+      "statistically_secured": false,
+      "consistency": "2/2",
+      "in_sample_mean_clv_pct": 1.698,
+      "pooled_oos_n": 41,
+      "pooled_oos_mean_clv_pct": 1.586,
+      "pooled_oos_median_clv_pct": 2.345,
+      "pooled_oos_share_positive_pct": 68.3,
+      "ci95": [
+        -0.463,
+        3.635
+      ],
+      "ci_excludes_zero": false
+    },
+    "F2": {
+      "status": "parked",
+      "reason": "vielversprechend, aber zu wenig Daten fuer OOS-Urteil",
+      "uncertain": false,
+      "statistically_secured": false,
+      "consistency": "2/2",
+      "in_sample_mean_clv_pct": 0.948,
+      "pooled_oos_n": 14,
+      "pooled_oos_mean_clv_pct": 2.931,
+      "pooled_oos_median_clv_pct": 2.926,
+      "pooled_oos_share_positive_pct": 85.7,
+      "ci95": [
+        1.045,
+        4.817
+      ],
+      "ci_excludes_zero": true
+    },
+    "SC3": {
+      "status": "parked",
+      "reason": "vielversprechend, aber zu wenig Daten fuer OOS-Urteil",
+      "uncertain": true,
+      "statistically_secured": false,
+      "consistency": "2/2",
+      "in_sample_mean_clv_pct": 3.949,
+      "pooled_oos_n": 25,
+      "pooled_oos_mean_clv_pct": 6.833,
+      "pooled_oos_median_clv_pct": 6.859,
+      "pooled_oos_share_positive_pct": 88.0,
+      "ci95": [
+        4.001,
+        9.664
+      ],
+      "ci_excludes_zero": true
+    }
+  },
+  "any_confirmed": true,
+  "any_secured": true,
+  "counts": {
+    "confirmed": 2,
+    "parked": 2,
+    "rejected": 0
+  },
+  "honest_note": "Konsistent positives GEPOOLTES OOS-CLV ueber mehrere unabhaengige Holdout-Saisons ist deutlich staerker als ein Einzel-Holdout \u2014 aber +1-2 % bleibt DUENN. Das 95%-KI ist eine NORMAL-Naeherung, die Wetten als unabhaengig behandelt; real sind Wetten (gleiche Partie/Spieltag/marktweite Bewegungen) KORRELIERT, die wahre Unsicherheit ist GROESSER (das KI ist also optimistisch/zu eng). Schliesst das KI die 0 NICHT aus, ist selbst ein positiver Mittelwert statistisch NICHT abgesichert. Kosten/Steuern/Limits bleiben unmodelliert; ein bestandener Walk-Forward ist ein SIGNAL, kein Gewinn-Beweis.",
+  "summary_text": "Walk-Forward-CLV-Test (>= 3 Saisons Training, gepoolte Holdouts, B365, CLV vs DEVIGTE Pinnacle-Schluss). Statistisch abgesichert (gepooltes 95%-KI ueber 0, OPTIMISTISCHE Unabhaengigkeitsannahme): EC (davon nur KNAPP: EC \u2014 KI-Untergrenze nahe 0). Staerker als ein Einzel-Holdout \u2014 aber +1-2 % bleibt duenn, und knappe KI-Untergrenzen koennen unter der realen Korrelation der Wetten unter 0 rutschen. EC: in 1.697% -> pooled-OOS 2.446% (n=48, 2/2 Folds+, KI[0.25,4.641]) [confirmed, KNAPP abgesichert (KI-Untergrenze 0.25%, optimistische Annahme)] | I2: in 1.698% -> pooled-OOS 1.586% (n=41, 2/2 Folds+, KI[-0.463,3.635]) [confirmed, aber NICHT abgesichert (0 im KI)] | F2: in 0.948% -> pooled-OOS 2.931% (n=14, 2/2 Folds+, KI[1.045,4.817]) [parked] | SC3 (unsicher): in 3.949% -> pooled-OOS 6.833% (n=25, 2/2 Folds+, KI[4.001,9.664]) [parked] Hinweis: KI ist Normal-Naeherung (Wetten korreliert -> echte Unsicherheit groesser); Kosten/Limits unmodelliert; Signal, kein Gewinn-Beweis."
+}

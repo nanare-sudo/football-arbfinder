@@ -28,6 +28,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 from statistics import median
 from typing import Any, Callable, Iterable
 import logging
@@ -216,7 +217,7 @@ def _anchor_report(bets: list[PinnBet], *, start_capital, flat_pct, kelly_fracti
                      haircut_pct=h)
         sweep.append({"haircut_pct": h, "end_capital": _r(s.end_capital, 2), "roi_pct": _r(s.roi_pct)})
 
-    block = {
+    block: dict[str, Any] = {
         "clv": clv_stats(bets),
         "pnl_flat": _sim_summary(flat),
         "pnl_kelly": _sim_summary(kelly),

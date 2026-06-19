@@ -1,0 +1,124 @@
+{
+  "league": "SC3",
+  "n_events": 830,
+  "n_bets": 50,
+  "n_settled": 50,
+  "n_with_clv": 50,
+  "clv": {
+    "share_positive_pct": 76.0,
+    "mean_clv_pct": 4.909,
+    "median_clv_pct": 4.68,
+    "n": 50,
+    "distribution_buckets": [
+      {
+        "bucket": "<-5",
+        "n": 6
+      },
+      {
+        "bucket": "-5..-2",
+        "n": 3
+      },
+      {
+        "bucket": "-2..0",
+        "n": 3
+      },
+      {
+        "bucket": "0..2",
+        "n": 2
+      },
+      {
+        "bucket": "2..5",
+        "n": 12
+      },
+      {
+        "bucket": ">5",
+        "n": 24
+      }
+    ]
+  },
+  "pnl_flat": {
+    "start": 100.0,
+    "end_capital": 117.02,
+    "roi_turnover_pct": 34.04,
+    "max_drawdown_pct": 5.07,
+    "hit_rate_pct": 38.0,
+    "ruin": {
+      "ruined": false,
+      "date": null,
+      "idx": null
+    }
+  },
+  "pnl_kelly": {
+    "start": 100.0,
+    "end_capital": 104.55,
+    "roi_turnover_pct": 19.235,
+    "max_drawdown_pct": 2.74,
+    "hit_rate_pct": 38.0,
+    "ruin": {
+      "ruined": false,
+      "date": null,
+      "idx": null
+    }
+  },
+  "by_odds_bucket": [
+    {
+      "bucket": "2.5-3.0",
+      "n_bets": 3,
+      "clv_mean_pct": 13.683,
+      "pnl": 2.67,
+      "roi_pct": 89.0
+    },
+    {
+      "bucket": "3.0-3.5",
+      "n_bets": 14,
+      "clv_mean_pct": 2.251,
+      "pnl": 2.5,
+      "roi_pct": 17.857
+    },
+    {
+      "bucket": "3.5+",
+      "n_bets": 33,
+      "clv_mean_pct": 5.24,
+      "pnl": 11.85,
+      "roi_pct": 35.909
+    }
+  ],
+  "odds_filter_diag": {
+    "n_edge_pass": 74,
+    "n_edge_in_range": 50,
+    "n_edge_below_range": 0,
+    "n_edge_above_range": 24
+  },
+  "robust": true,
+  "robust_reasons": [
+    "mean_clv 4.909% >= 0.5%",
+    "share_positive 76.0% > 55.0%",
+    "n_with_clv 50 >= 50",
+    "CLV positiv in 2 von 2 besetzten Buckets"
+  ],
+  "meta": {
+    "bet_source": "B365",
+    "clv_benchmark": "pinnacle_close_devigged",
+    "odds_filter": [
+      2.0,
+      4.0
+    ],
+    "min_edge": 2.0,
+    "robust_criteria": {
+      "min_mean_clv_pct": 0.5,
+      "min_share_positive_pct": 55.0,
+      "min_bets": 50,
+      "min_positive_buckets": 2,
+      "min_bucket_n": 10
+    },
+    "selection_basis": "robust"
+  },
+  "caveats": [
+    "Primaersignal ist CLV gegen die DEVIGTE Pinnacle-Schluss (faire no-vig Linie), nicht die rohe Schlussquote \u2014 das ist die haertere, ehrlichere Messlatte.",
+    "PnL (Bankroll/Drawdown/Ruin) ist SEKUNDAER und deutlich verrauschter als CLV.",
+    "Weniger liquide Ligen haben oft duennere/spaetere Pinnacle-Abdeckung; der Anker kann dort schwaecher sein (eine Schwaeche der Methode, kein Vorteil).",
+    "Bet-Quelle ist eine EINZELNE Quelle (kein Line-Shopping ueber mehrere Bookies).",
+    "Kosten/Steuern/Gebuehren und Buchmacher-LIMITS sind NICHT modelliert.",
+    "IN-SAMPLE: der Anker lernt nichts; CLV ist Vorlaufindikator, kein OOS-Beweis."
+  ]
+}

@@ -1,0 +1,156 @@
+{
+  "meta": {
+    "csv_dir": "data",
+    "n_files_loaded": 3,
+    "loaded_files": [
+      "E0_2223.csv",
+      "E0_2324.csv",
+      "E0_2425.csv"
+    ],
+    "n_leagues": 1,
+    "n_files_skipped": 0,
+    "skipped_files": [],
+    "bet_source": "B365",
+    "anchor": "open",
+    "clv_benchmark": "pinnacle_close_devigged",
+    "odds_filter": [
+      2.0,
+      4.0
+    ],
+    "min_edge": 2.0,
+    "robust_criteria": {
+      "min_mean_clv_pct": 0.5,
+      "min_share_positive_pct": 55.0,
+      "min_bets": 50,
+      "min_positive_buckets": 2,
+      "min_bucket_n": 10
+    },
+    "leagues_scanned": [
+      "E0"
+    ],
+    "date_range": [
+      "2022-08-05",
+      "2025-05-25"
+    ]
+  },
+  "leagues": {
+    "E0": {
+      "league": "E0",
+      "n_events": 1140,
+      "n_bets": 3,
+      "n_settled": 3,
+      "n_with_clv": 3,
+      "clv": {
+        "share_positive_pct": 100.0,
+        "mean_clv_pct": 6.484,
+        "median_clv_pct": 4.159,
+        "n": 3,
+        "distribution_buckets": [
+          {
+            "bucket": "<-5",
+            "n": 0
+          },
+          {
+            "bucket": "-5..-2",
+            "n": 0
+          },
+          {
+            "bucket": "-2..0",
+            "n": 0
+          },
+          {
+            "bucket": "0..2",
+            "n": 0
+          },
+          {
+            "bucket": "2..5",
+            "n": 2
+          },
+          {
+            "bucket": ">5",
+            "n": 1
+          }
+        ]
+      },
+      "pnl_flat": {
+        "start": 100.0,
+        "end_capital": 97.0,
+        "roi_turnover_pct": -100.0,
+        "max_drawdown_pct": 3.0,
+        "hit_rate_pct": 0.0,
+        "ruin": {
+          "ruined": false,
+          "date": null,
+          "idx": null
+        }
+      },
+      "pnl_kelly": {
+        "start": 100.0,
+        "end_capital": 99.26,
+        "roi_turnover_pct": -100.0,
+        "max_drawdown_pct": 0.74,
+        "hit_rate_pct": 0.0,
+        "ruin": {
+          "ruined": false,
+          "date": null,
+          "idx": null
+        }
+      },
+      "by_odds_bucket": [
+        {
+          "bucket": "3.5+",
+          "n_bets": 3,
+          "clv_mean_pct": 6.484,
+          "pnl": -3.0,
+          "roi_pct": -100.0
+        }
+      ],
+      "odds_filter_diag": {
+        "n_edge_pass": 49,
+        "n_edge_in_range": 3,
+        "n_edge_below_range": 0,
+        "n_edge_above_range": 46
+      },
+      "robust": false,
+      "robust_reasons": [
+        "mean_clv 6.484% >= 0.5%",
+        "share_positive 100.0% > 55.0%",
+        "n_with_clv 3 < 50 (Stichprobe zu klein)",
+        "CLV positiv in 0 von 0 besetzten Buckets (<2 -> evtl. nur ein Bucket)"
+      ]
+    }
+  },
+  "ranking": [
+    {
+      "league": "E0",
+      "mean_clv_pct": 6.484,
+      "share_positive_clv_pct": 100.0,
+      "n_bets": 3,
+      "n_with_clv": 3,
+      "robust": false
+    }
+  ],
+  "verdict": {
+    "primary_signal": "CLV vs devigte Pinnacle-Schluss",
+    "any_robust": false,
+    "robust_leagues": [],
+    "best_league": "E0",
+    "best_basis": "bestes_mean_clv_KLEINE_stichprobe",
+    "robust_criteria": {
+      "min_mean_clv_pct": 0.5,
+      "min_share_positive_pct": 55.0,
+      "min_bets": 50,
+      "min_positive_buckets": 2,
+      "min_bucket_n": 10
+    },
+    "summary": "KEINE Liga zeigt ein ROBUSTES positives CLV gegen die devigte Pinnacle-Schluss. Bestes (NICHT robustes) mean_clv: E0 (6.484%, n_with_clv 3) \u2014 nicht ueberinterpretieren.",
+    "caveats": [
+      "Primaersignal ist CLV gegen die DEVIGTE Pinnacle-Schluss (faire no-vig Linie), nicht die rohe Schlussquote \u2014 das ist die haertere, ehrlichere Messlatte.",
+      "PnL (Bankroll/Drawdown/Ruin) ist SEKUNDAER und deutlich verrauschter als CLV.",
+      "Weniger liquide Ligen haben oft duennere/spaetere Pinnacle-Abdeckung; der Anker kann dort schwaecher sein (eine Schwaeche der Methode, kein Vorteil).",
+      "Bet-Quelle ist eine EINZELNE Quelle (kein Line-Shopping ueber mehrere Bookies).",
+      "Kosten/Steuern/Gebuehren und Buchmacher-LIMITS sind NICHT modelliert.",
+      "IN-SAMPLE: der Anker lernt nichts; CLV ist Vorlaufindikator, kein OOS-Beweis."
+    ]
+  }
+}

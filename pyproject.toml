@@ -1,15 +1,30 @@
 [project]
 name = "arbfinder"
 version = "0.1.0"
+description = "Sports-betting market-efficiency research: a rigorous, anti-overfitting pipeline for detecting and validating an out-of-sample-stable betting edge via Closing Line Value."
+readme = "README.md"
 requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Leonardo Berisha" }]
+keywords = ["quantitative-finance", "market-efficiency", "backtesting",
+            "closing-line-value", "walk-forward", "validation", "sports-betting"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Typing :: Typed",
+]
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0"]
+dev = ["pytest>=8.0", "mypy>=1.8"]
 plot = ["matplotlib>=3.7"]
 fuzzy = ["rapidfuzz>=3.0"]
-live = ["requests>=2.31"]            # nur fuer den echten Odds-API-Provider noetig
-agent = ["apscheduler>=3.10"]        # nur fuer den periodischen Agent noetig
+live = ["requests>=2.31"]            # only needed for the live Odds-API provider
+agent = ["apscheduler>=3.10"]        # only needed for the periodic agent
+
+[project.urls]
+Repository = "https://github.com/your-handle/arbfinder"
 
 [project.scripts]
 arbfinder = "arbfinder.cli:main"
@@ -24,3 +39,11 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src/arbfinder"]
+ignore_missing_imports = true
+# `requests` (optional live-provider-only dep) ships without type stubs; don't
+# fail the type check on the missing-stub import.
+disable_error_code = ["import-untyped"]
