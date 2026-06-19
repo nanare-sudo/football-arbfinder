@@ -10,6 +10,9 @@ plot = ["matplotlib>=3.7"]
 fuzzy = ["rapidfuzz>=3.0"]
 live = ["requests>=2.31"]            # nur fuer den echten Odds-API-Provider noetig
 
+[project.scripts]
+arbfinder = "arbfinder.cli:main"
+
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
