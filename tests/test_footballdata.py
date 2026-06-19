@@ -1,8 +1,16 @@
 import logging
+import os
+
+import pytest
 
 from arbfinder import backtest
 from arbfinder.providers.base import read_jsonl
-from arbfinder.providers.footballdata import FootballDataProvider, to_jsonl
+from arbfinder.providers.footballdata import (
+    FootballDataProvider,
+    _bookie_triples,
+    _parse_kickoff,
+    to_jsonl,
+)
 
 _SAMPLE = "tests/data/footballdata_sample.csv"
 
@@ -58,11 +66,67 @@ def test_ueberspringt_zeile_ohne_teams(tmp_path, caplog):
     assert [e.home for e in evs] == ["C"]                           # kaputte Zeile uebersprungen
 
 
+def test_bookie_triples_ignoriert_handicap_overunder_corner():
+    # Nur echte 1X2-Triples; AH (kein D), Over/Under, Corners, Aggregate raus.
+    fields = ["HomeTeam", "AwayTeam", "FTR",
+              "B365H", "B365D", "B365A",            # 1X2 Bookie
+              "B365AHH", "B365AHA",                 # Asian Handicap (kein D)
+              "B365>2.5", "B365<2.5",               # Over/Under
+              "HC", "AC",                           # Eckball-Spalten
+              "MaxH", "MaxD", "MaxA", "AvgH", "AvgD", "AvgA"]  # Aggregate
+    assert set(_bookie_triples(fields)) == {"B365"}
+
+
+def test_bookie_triples_schliesst_closing_aggregate_aus():
+    fields = ["B365H", "B365D", "B365A", "B365CH", "B365CD", "B365CA",
+              "MaxH", "MaxD", "MaxA", "MaxCH", "MaxCD", "MaxCA"]
+    res = _bookie_triples(fields)
+    assert set(res) == {"B365"}                                     # Max UND MaxC ausgeschlossen
+    assert res["B365"] == ("B365CH", "B365CD", "B365CA")            # Closing bevorzugt
+
+
+def test_ftr_leer_oder_unbekannt_setzt_result_none(tmp_path):
+    csv_text = ("Div,Date,HomeTeam,AwayTeam,FTR,B365H,B365D,B365A\n"
+                "E0,17/08/2024,A,B,,1.5,4.0,6.0\n"                  # FTR leer
+                "E0,18/08/2024,C,D,X,2.0,3.4,3.6\n")                # FTR ungueltig
+    p = tmp_path / "f.csv"
+    p.write_text(csv_text, encoding="utf-8")
+    evs = FootballDataProvider(p).fetch_events()
+    assert len(evs) == 2 and all(e.result is None for e in evs)     # nicht uebersprungen, nichts erfunden
+
+
+def test_parse_kickoff_zeit_fehlt_oder_unparsbar_datumsgenau():
+    assert _parse_kickoff("17/08/2024", "").hour == 0              # keine Zeit -> 00:00
+    k = _parse_kickoff("17/08/2024", "nonsense")
+    assert (k.hour, k.minute) == (0, 0)                            # unparsbare Zeit -> 00:00 (kein Raten)
+    assert _parse_kickoff("17/08/2024", "12:30").hour == 12
+    assert _parse_kickoff("17/08/24", "").year == 2024             # zweistelliges Jahr
+
+
+def test_to_jsonl_ueberschreibt_statt_anzuhaengen(tmp_path):
+    out = tmp_path / "o.jsonl"
+    n1 = to_jsonl(_SAMPLE, out)
+    n2 = to_jsonl(_SAMPLE, out)
+    assert n1 == n2 == 8 and len(read_jsonl(out)) == 8             # ueberschrieben, nicht verdoppelt
+
+
+def test_echtes_csv_parst_wenn_vorhanden():
+    path = "data/E0_2324.csv"
+    if not os.path.exists(path):
+        pytest.skip("echtes football-data CSV nicht vorhanden (gitignored)")
+    evs = FootballDataProvider(path).fetch_events()
+    assert len(evs) == 380
+    bookies = set(evs[0].markets[0].odds.get(evs[0].home, {}))
+    assert {"B365", "PS", "VC", "WH"}.issubset(bookies)            # echte Bookies, VC via Closing
+    assert not ({"V", "Max", "Avg", "MaxC", "AvgC"} & bookies)     # keine Phantome/Aggregate
+
+
 def test_laeuft_durch_normalize_team_identitaet(tmp_path):
     out = tmp_path / "o.jsonl"
     to_jsonl(_SAMPLE, out)
     names = {r["event_name"] for r in read_jsonl(out)}
     assert any("Manchester City" in n for n in names)               # 'Man City' -> kanonisch
+    assert not any("Man City" in n for n in names)                  # rohe Schreibweise verschwunden
 
 
 def test_value_backtest_auf_footballdata_end_to_end(tmp_path):

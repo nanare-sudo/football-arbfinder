@@ -55,9 +55,11 @@ Vollstaendigkeitspruefung aufgeweicht wurde (`skipped_incomplete` gefallen).
 providers/         Datenquellen -> einheitliche Event-Objekte (defensiv parsen)
   base.py          Provider-Interface + Parse-Helfer
   mock.py          liest aufgezeichnete .jsonl (laeuft offline, end-to-end)
-  theoddsapi.py    STUB fuer eine lizenzierte API (Key via ODDS_API_KEY)
+  theoddsapi.py    Live-Client lizenzierte API: fetch_events + fetch_historical (Key via ODDS_API_KEY)
+  footballdata.py  Loader fuer football-data.co.uk CSV-Dateien (Schlussquoten + Ergebnis)
 models.py          anbieterunabhaengige Event/Market (start_time ist Pflicht)
 normalize.py       3-Stufen-Teamnormalisierung + Event-Identitaet (Teams+Zeit)
+backfill.py        historischer Quoten-Backfill (Kosten-Guards: 10x Credits)
 recorder.py        zeichnet echte Quoten-Snapshots auf (append-only, lizenz. API)
 results.py         traegt echte Ergebnisse nach (ResultSource, scores-Endpoint)
 detector.py        Pipeline: fetch -> normalize/merge -> pro Markt pruefen ->
