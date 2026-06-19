@@ -35,6 +35,18 @@ def test_bevorzugt_schlussquoten(tmp_path):
     assert e.markets[0].odds["A"]["B365"] == 1.80                   # Closing, nicht 1.50
 
 
+def test_bookie_code_auf_c_nicht_als_closing_missdeutet(tmp_path):
+    # VC (VC Bet) endet selbst auf 'C': VCH/VCD/VCA = pre-match, VCCH/... = closing.
+    # Es darf KEIN Phantom-Bookie 'V' entstehen; 'VC' muss die Schlussquote nutzen.
+    csv_text = ("Div,Date,HomeTeam,AwayTeam,FTR,VCH,VCD,VCA,VCCH,VCCD,VCCA\n"
+                "E0,17/08/2024,A,B,H,2.00,3.4,3.6,2.10,3.5,3.7\n")
+    p = tmp_path / "vc.csv"
+    p.write_text(csv_text, encoding="utf-8")
+    e = FootballDataProvider(p).fetch_events()[0]
+    assert set(e.markets[0].odds["A"]) == {"VC"}              # nicht {'V','VC'}
+    assert e.markets[0].odds["A"]["VC"] == 2.10              # Closing (VCCH), nicht 2.00
+
+
 def test_ueberspringt_zeile_ohne_teams(tmp_path, caplog):
     csv_text = ("Div,Date,HomeTeam,AwayTeam,FTR,B365H,B365D,B365A\n"
                 "E0,17/08/2024,,B,H,1.5,4.0,6.0\n"

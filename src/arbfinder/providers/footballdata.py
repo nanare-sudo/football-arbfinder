@@ -49,6 +49,12 @@ def _bookie_triples(fieldnames: Iterable[str]) -> dict[str, tuple[str, str, str]
     """Erkennt Buchmacher-Quoten-Triples; bevorzugt Closing, schliesst Aggregate aus.
 
     Returns: {Bookie-Name -> (H-Spalte, D-Spalte, A-Spalte)}.
+
+    Closing-Spalten tragen ein zusaetzliches 'C' (z.B. B365CH). ACHTUNG: manche
+    Bookie-Codes enden selbst auf 'C' (VC = VC Bet, mit VCH/VCD/VCA pre-match und
+    VCCH/... closing). Deshalb gilt ein '...C'-Prefix nur dann als Closing, wenn
+    sein Basis-Prefix OHNE 'C' ebenfalls existiert — sonst ist 'C' Teil des
+    Bookie-Codes.
     """
     fields = set(fieldnames)
     candidates: dict[str, tuple[str, str, str]] = {}
@@ -58,15 +64,17 @@ def _bookie_triples(fieldnames: Iterable[str]) -> dict[str, tuple[str, str, str]
             if (prefix + "D") in fields and (prefix + "A") in fields:
                 candidates[prefix] = (f, prefix + "D", prefix + "A")
 
-    closing = {p: c for p, c in candidates.items() if p.endswith("C")}
-    chosen = closing if closing else candidates           # Schlussquoten bevorzugen
+    def is_closing(p: str) -> bool:
+        return p.endswith("C") and p[:-1] in candidates      # nur echtes Closing
 
     triples: dict[str, tuple[str, str, str]] = {}
-    for prefix, cols in chosen.items():
-        base = prefix[:-1] if prefix.endswith("C") else prefix   # Closing-'C' abstreifen
-        if base in _AGGREGATE_BASES or not base:
+    for prefix, cols in candidates.items():
+        if is_closing(prefix):
+            continue                                          # via Basis-Bookie behandelt
+        if prefix in _AGGREGATE_BASES or not prefix:
             continue
-        triples[base] = cols
+        closing_cols = candidates.get(prefix + "C")           # Schlussquoten bevorzugen
+        triples[prefix] = closing_cols if (closing_cols and is_closing(prefix + "C")) else cols
     return triples
 
 
